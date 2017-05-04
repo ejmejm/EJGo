@@ -2,6 +2,7 @@ import glob
 import os
 import numpy as np
 from sgfmill.sgfmill import sgf
+import trainingNetwork as go_learn
 
 kifuPath = "./kifu"
 games = []
@@ -24,7 +25,11 @@ board_size = games[0].get_size()
 root_node = games[0].get_root()
 b_player = root_node.get("PB")
 w_player = root_node.get("PW")
-for node in games[0].get_main_sequence():
-    if node.get_move()[1] != None:
-        x = node.get_move()[1]
-        print(x[0], ", ", x[1])
+
+#for node in games[0].get_main_sequence():
+    #if node.get_move()[1] != None:
+    #x = node.get_move()[1]
+    #print(node.get_move())
+
+print("Begin learning...")
+go_learn.test_network(games)
