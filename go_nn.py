@@ -47,11 +47,11 @@ def load(save_path):
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     saver = tf.train.Saver()
 
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        print("Pre Restore: ", sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
-        saver.restore(sess=sess, save_path=save_path)
-        print("Post Restore: ", sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+    saver.restore(sess=sess, save_path=save_path)
+    return sess
+
 
 def train_neural_network(x, gameData):
     prediction = nn_forward(x)
@@ -85,5 +85,7 @@ def train_neural_network(x, gameData):
 def train(gameData):
     train_neural_network(x, gameData)
 
-def test(gameData):
-    print(sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
+def get_move(board):
+    prediction = nn_forward(x)
+    sess = load("checkpoints/next_move_model")
+    return sess.run(prediction, feed_dict = {x: board})
