@@ -1,17 +1,18 @@
 import tensorflow as tf
 import numpy as np
+import time
 
 board_size = 19
 
-n_nodes_hl1 = 500
-n_nodes_hl2 = 500
-n_nodes_hl3 = 500
+n_nodes_hl1 = 250
+n_nodes_hl2 = 250
+n_nodes_hl3 = 250
 
-n_classes = 2
+n_classes = board_size * board_size
 batch_size = 5
 
 x = tf.placeholder(tf.float32, [None, board_size * board_size])
-y = tf.placeholder(tf.float32, [None, 2])
+y = tf.placeholder(tf.float32, [None, board_size * board_size])
 
 def nn_forward(data):
     hidden_1_layer = {"weights": tf.Variable(tf.random_normal([board_size * board_size, n_nodes_hl1])),
@@ -28,13 +29,13 @@ def nn_forward(data):
     "biases": tf.Variable(tf.random_normal([n_classes]))}
 
     l1 = tf.add(tf.matmul(data, hidden_1_layer["weights"]), hidden_1_layer["biases"])
-    l1 = tf.nn.relu(l1)
+    l1 = tf.nn.tanh(l1)
 
     l2 = tf.add(tf.matmul(l1, hidden_2_layer["weights"]), hidden_2_layer["biases"])
-    l2 = tf.nn.relu(l2)
+    l2 = tf.nn.tanh(l2)
 
     l3 = tf.add(tf.matmul(l2, hidden_3_layer["weights"]), hidden_3_layer["biases"])
-    l3 = tf.nn.relu(l3)
+    l3 = tf.nn.tanh(l3)
 
     output = tf.matmul(l3, output_layer["weights"]) + output_layer["biases"]
 
@@ -52,22 +53,20 @@ def train_neural_network(x, gameData):
 
         for epoch in range(hm_epochs):
             epoch_loss = 0
-            for index in range(int(len(gameData)/batch_size)):
-                board = np.zeros(board_size * board_size)
-                for node in gameData[batch_size * epoch + index].get_main_sequence():
+            for index in range(len(gameData)):
+                board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
+                for node in gameData[index].get_main_sequence():
                     board = -board; # Changes player perspective, black becomes white and vice versa
                     if node.get_move()[1] != None:
-                        next_move = []
-                        next_move.append(node.get_move()[1])
-                        next_move = np.array(next_move) # y = an array in the form [board_x_position, board_y_position]
+                        next_move = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
+                        next_move[0][node.get_move()[1][0] * board_size +
+                        node.get_move()[1][1]] = 1 # y = an array in the form [board_x_position, board_y_position]
                         _, c = sess.run([optimizer, cost], feed_dict = {x: board, y: next_move})
                         epoch_loss += c
-                        board[y[0] * board_size + y[1]] = 1 # Update board with new move
+                        board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
                     # TODO: Train on passes here?
-                    print("Epoch ", epoch, " completed out of ", hm_epochs, ", Loss: ", epoch_loss)
-
-        print("Prediction: ", prediction)
-        print("Acutal: ", y)
+            print("Epoch ", epoch+1, " completed out of ", hm_epochs, ", Loss: ", epoch_loss)
+        print(sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
 
 def test_network(gameData):
     train_neural_network(x, gameData)
