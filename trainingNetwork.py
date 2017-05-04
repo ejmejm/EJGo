@@ -41,10 +41,24 @@ def nn_forward(data):
 
     return output
 
+def load(save_path):
+    prediction = nn_forward(x)
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
+    optimizer = tf.train.AdamOptimizer().minimize(cost)
+    saver = tf.train.Saver()
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        print("Pre Restore: ", sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
+        saver.restore(sess=sess, save_path=save_path)
+        print("Post Restore: ", sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
+
 def train_neural_network(x, gameData):
     prediction = nn_forward(x)
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
+    saver = tf.train.Saver()
+    save_path = "checkpoints/next_move_model"
 
     hm_epochs = 10
 
@@ -66,7 +80,10 @@ def train_neural_network(x, gameData):
                         board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
                     # TODO: Train on passes here?
             print("Epoch ", epoch+1, " completed out of ", hm_epochs, ", Loss: ", epoch_loss)
-        print(sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))
+        saver.save(sess=sess, save_path=save_path)
 
-def test_network(gameData):
+def train(gameData):
     train_neural_network(x, gameData)
+
+def test(gameData):
+    print(sess.run(prediction, feed_dict = {x: np.zeros(board_size * board_size).reshape(1, board_size * board_size)}).reshape(19, 19).astype(int))

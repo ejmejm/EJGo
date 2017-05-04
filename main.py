@@ -11,7 +11,7 @@ print("Loading game data...")
 
 i = 0
 for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
-    if i < 50:
+    if i < 30:
         with open(filename, "rb") as f:
             games.append(sgf.Sgf_game.from_bytes(f.read()))
             i += 1
@@ -30,4 +30,5 @@ w_player = root_node.get("PW")
     #print(node.get_move())
 
 print("Begin learning...")
-go_learn.test_network(games)
+#go_learn.train(games)
+go_learn.load("checkpoints/next_move_model")
