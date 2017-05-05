@@ -18,4 +18,4 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
 print("Done loading games")
 
 print("Begin learning...")
-go_learn.train(games)
+#go_learn.train(games)

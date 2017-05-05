@@ -86,6 +86,32 @@ def train(gameData):
     train_neural_network(x, gameData)
 
 def get_move(board):
+    board = board.reshape(1, board_size * board_size)
     prediction = nn_forward(x)
-    sess = load("checkpoints/next_move_model")
-    return sess.run(prediction, feed_dict = {x: board})
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
+    optimizer = tf.train.AdamOptimizer().minimize(cost)
+    saver = tf.train.Saver()
+
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+    saver.restore(sess=sess, save_path="checkpoints/next_move_model")
+    move = sess.run(prediction, feed_dict = {x: board})
+    sess.close()
+    return move
+
+def predict_move(board):
+    board = board.reshape(board_size * board_size)
+    prob_board = get_move(board).reshape(board_size * board_size)
+    sorted_board = np.asarray(sorted(enumerate(prob_board), reverse = True, key=lambda i:i[1]))
+
+    move_found = False
+    i = 0
+    while move_found == False:
+        if i >= len(board):
+            move_found = True
+            return(-1)
+        if board[int(sorted_board[i][0])] == 0:
+            board[int(sorted_board[i][0])] = 1
+            move_found = True
+            return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
+        i += 1

@@ -26,8 +26,10 @@ w_player = root_node.get("PW")
 
 for node in games[0].get_main_sequence():
     if node.get_move()[1] != None:
-    x = node.get_move()[1]
-    print(node.get_move())
+        x = node.get_move()[1]
+        print(node.get_move())
+
+print(go_learn.get_move(np.zeros(19*19)).reshape(go_learn.board_size, go_learn.board_size).astype(int))
 
 #print("Begin learning...")
 #go_learn.train(games)
