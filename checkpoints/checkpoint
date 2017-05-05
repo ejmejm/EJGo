@@ -1,2 +1,6 @@
-model_checkpoint_path: "next_move_model"
-all_model_checkpoint_paths: "next_move_model"
+model_checkpoint_path: "next_move_model.ckpt"
+all_model_checkpoint_paths: "nm_epoch_12.ckpt"
+all_model_checkpoint_paths: "nm_epoch_13.ckpt"
+all_model_checkpoint_paths: "nm_epoch_14.ckpt"
+all_model_checkpoint_paths: "nm_epoch_15.ckpt"
+all_model_checkpoint_paths: "next_move_model.ckpt"

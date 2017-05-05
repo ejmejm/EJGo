@@ -4,12 +4,14 @@ import time
 
 board_size = 19
 
-n_nodes_hl1 = 250
-n_nodes_hl2 = 250
-n_nodes_hl3 = 250
+n_nodes_hl1 = 300
+n_nodes_hl2 = 300
+n_nodes_hl3 = 300
 
 n_classes = board_size * board_size
 batch_size = 5
+
+sess = tf.Session()
 
 x = tf.placeholder(tf.float32, [None, board_size * board_size])
 y = tf.placeholder(tf.float32, [None, board_size * board_size])
@@ -42,15 +44,13 @@ def nn_forward(data):
     return output
 
 def load(save_path):
-    prediction = nn_forward(x)
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
-    optimizer = tf.train.AdamOptimizer().minimize(cost)
+    pred = nn_forward(x)
     saver = tf.train.Saver()
 
-    sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     saver.restore(sess=sess, save_path=save_path)
-    return sess
+    prediction = pred
+    return {"session": sess, "prediction": pred}
 
 
 def train_neural_network(x, gameData):
@@ -58,9 +58,9 @@ def train_neural_network(x, gameData):
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     saver = tf.train.Saver()
-    save_path = "checkpoints/next_move_model"
+    save_path = "checkpoints/next_move_model.ckpt"
 
-    hm_epochs = 10
+    hm_epochs = 15
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -79,29 +79,22 @@ def train_neural_network(x, gameData):
                         epoch_loss += c
                         board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
                     # TODO: Train on passes here?
+            saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
             print("Epoch ", epoch+1, " completed out of ", hm_epochs, ", Loss: ", epoch_loss)
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData):
     train_neural_network(x, gameData)
 
-def get_move(board):
+def get_prob_board(board, model):
     board = board.reshape(1, board_size * board_size)
-    prediction = nn_forward(x)
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
-    optimizer = tf.train.AdamOptimizer().minimize(cost)
-    saver = tf.train.Saver()
 
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    saver.restore(sess=sess, save_path="checkpoints/next_move_model")
-    move = sess.run(prediction, feed_dict = {x: board})
-    sess.close()
+    move = sess.run(model["prediction"], feed_dict = {x: board})
     return move
 
-def predict_move(board):
+def predict_move(board, model):
     board = board.reshape(board_size * board_size)
-    prob_board = get_move(board).reshape(board_size * board_size)
+    prob_board = get_prob_board(board, model).reshape(board_size * board_size)
     sorted_board = np.asarray(sorted(enumerate(prob_board), reverse = True, key=lambda i:i[1]))
 
     move_found = False

@@ -5,6 +5,7 @@ import go_nn as go_learn
 
 # The bot is 1, the player is -1, and empty is 0
 board = np.zeros((go_learn.board_size, go_learn.board_size))
+model = go_learn.load("checkpoints/next_move_model.ckpt")
 
 while True:
     player_input = input("Enter your move: ")
@@ -21,6 +22,6 @@ while True:
         print("That spot is already occupied by the bot")
     else:
         board[player_move[0], player_move[1]] = -1
-        bot_move = go_learn.predict_move(board)
+        bot_move = go_learn.predict_move(board, model)
         board[bot_move[0], bot_move[1]] = 1
         print("Bot move: ", bot_move)
