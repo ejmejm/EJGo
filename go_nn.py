@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import time
+import board as go_board
 
 board_size = 19
 
@@ -92,19 +93,19 @@ def get_prob_board(board, model):
     move = sess.run(model["prediction"], feed_dict = {x: board})
     return move
 
-def predict_move(board, model):
-    board = board.reshape(board_size * board_size)
-    prob_board = get_prob_board(board, model).reshape(board_size * board_size)
+def predict_move(board, model, level=0, bot_tile=1):
+    c_board = np.copy(board.reshape(board_size * board_size))
+    prob_board = get_prob_board(c_board, model).reshape(board_size * board_size)
     sorted_board = np.asarray(sorted(enumerate(prob_board), reverse = True, key=lambda i:i[1]))
 
     move_found = False
     i = 0
     while move_found == False:
-        if i >= len(board):
+        if i >= len(c_board):
             move_found = True
             return(-1)
-        if board[int(sorted_board[i][0])] == 0:
-            board[int(sorted_board[i][0])] = 1
+        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), bot_tile) != None:
+            c_board[int(sorted_board[i][0])] = 1
             move_found = True
             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
         i += 1

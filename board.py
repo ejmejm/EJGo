@@ -22,6 +22,7 @@ def make_move(board, move, player):
     if group_captures == 0 and check_liberties(board, move) == 0:
         board[move[0]][move[1]] = empty
         print("ERROR! Illegal suicide move")
+        return None
 
     return board
 
