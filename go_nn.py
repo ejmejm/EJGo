@@ -10,7 +10,7 @@ n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
 n_classes = board_size * board_size
-batch_size = 5
+batch_size = 50
 
 sess = tf.Session()
 
@@ -61,13 +61,16 @@ def train_neural_network(x, gameData):
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
-    hm_epochs = 15
+    hm_epochs = 5
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
         for epoch in range(hm_epochs):
             epoch_loss = 0
+            game_loss = 0
+            game_index = 0
+            game_counter = 0
             for index in range(len(gameData)):
                 board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
                 for node in gameData[index].get_main_sequence():
@@ -78,10 +81,17 @@ def train_neural_network(x, gameData):
                         node.get_move()[1][1]] = 1 # y = an array in the form [board_x_position, board_y_position]
                         _, c = sess.run([optimizer, cost], feed_dict = {x: board, y: next_move})
                         epoch_loss += c
+                        game_loss += c
                         board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
-                    # TODO: Train on passes here?
+                game_counter += 1
+                if game_counter % batch_size == 0:
+                    game_index += 1
+                    print("Epoch", epoch+1, ", Game batch", game_index, "completed, Loss:", game_loss)
+                    game_loss = 0
+                    game_counter = 0
+
             saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("Epoch ", epoch+1, " completed out of ", hm_epochs, ", Loss: ", epoch_loss)
+            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n")
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData):
