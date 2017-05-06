@@ -4,6 +4,7 @@ from sgfmill.sgfmill import sgf
 import go_nn as go_learn
 import board as go_board
 
+
 # The bot is 1, the player is -1, and empty is 0
 board = np.zeros((go_learn.board_size, go_learn.board_size))
 model = go_learn.load("checkpoints/next_move_model.ckpt")
@@ -11,9 +12,7 @@ model = go_learn.load("checkpoints/next_move_model.ckpt")
 player = -1
 bot = 1
 
-while True:
-    player_input = input("Enter your move: ")
-    player_move = [int(n) for n in player_input.split()]
+def take_turn(player_move, set_stones=None):
     player_move[0] -= 1 # Change from 1-19 to 0-18
     player_move[1] -= 1
     if len(player_move) != 2:
@@ -29,3 +28,11 @@ while True:
         bot_move = go_learn.predict_move(board, model)
         go_board.make_move(board, bot_move, bot)
         print("Bot move: ", bot_move + 1)
+        if set_stones != None:
+            set_stones(board)
+'''
+while True:
+    player_input = input("Enter your move: ")
+    player_move = [int(n) for n in player_input.split()]
+    take_turn(player_move)
+'''
