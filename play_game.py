@@ -2,10 +2,14 @@ import os
 import numpy as np
 from sgfmill.sgfmill import sgf
 import go_nn as go_learn
+import board as go_board
 
 # The bot is 1, the player is -1, and empty is 0
 board = np.zeros((go_learn.board_size, go_learn.board_size))
 model = go_learn.load("checkpoints/next_move_model.ckpt")
+
+player = -1
+bot = 1
 
 while True:
     player_input = input("Enter your move: ")
@@ -21,7 +25,7 @@ while True:
     elif board[player_move[0], player_move[1]] == 1:
         print("That spot is already occupied by the bot")
     else:
-        board[player_move[0], player_move[1]] = -1
+        go_board.make_move(board, player_move, player)
         bot_move = go_learn.predict_move(board, model)
-        board[bot_move[0], bot_move[1]] = 1
-        print("Bot move: ", bot_move)
+        go_board.make_move(board, bot_move, bot)
+        print("Bot move: ", bot_move + 1)

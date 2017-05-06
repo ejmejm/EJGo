@@ -7,17 +7,17 @@ def make_move(board, move, player):
     empty = 0
 
     group_captures = 0
-    if move[0] + 1 <= 18 and board[move[0]+1][move[1]] == enemy and check_liberties[move[0]+1][move[1]] == 0:
-        remove_stones(board, (move[0]+1, move[1]))
+    if move[0] + 1 <= 18 and board[move[0]+1][move[1]] == enemy and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
+        remove_stones(board, np.array([move[0]+1, move[1]]))
         group_captures += 1
-    if move[0] - 1 >= 0 and board[move[0]-1][move[1]] == enemy and check_liberties[move[0]-1][move[1]] == 0:
-        remove_stones(board, (move[0]-1, move[1]))
+    if move[0] - 1 >= 0 and board[move[0]-1][move[1]] == enemy and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
+        remove_stones(board, np.array([move[0]-1, move[1]]))
         group_captures += 1
-    if move[1] + 1 <= 18 and board[move[0]][move[1]+1] == enemy and check_liberties[move[0]][move[1]+1] == 0:
-        remove_stones(board, (move[0], move[1]+1))
+    if move[1] + 1 <= 18 and board[move[0]][move[1]+1] == enemy and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
+        remove_stones(board, np.array([move[0], move[1]+1]))
         group_captures += 1
-    if move[1] - 1 >= 0 and board[move[0]][move[1]-1] == enemy and check_liberties[move[0]][move[1]-1] == 0:
-        remove_stones(board, (move[0], move[1]-1))
+    if move[1] - 1 >= 0 and board[move[0]][move[1]-1] == enemy and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
+        remove_stones(board, np.array([move[0], move[1]-1]))
         group_captures += 1
     if group_captures == 0 and check_liberties(board, move) == 0:
         board[move[0]][move[1]] = empty
