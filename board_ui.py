@@ -90,6 +90,6 @@ def set_stones(board):
 root = tk.Tk()
 ui_board = GameBoard(root)
 ui_board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
-player1 = tk.PhotoImage(file="imgs/black_stone.gif")
-player2 = tk.PhotoImage(file="imgs/white_stone.gif")
+player1 = tk.PhotoImage(file="imgs/black_stone.png")
+player2 = tk.PhotoImage(file="imgs/white_stone.png")
 root.mainloop()

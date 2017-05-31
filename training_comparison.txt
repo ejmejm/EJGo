@@ -2,6 +2,7 @@ cnn with relu (50 games):
 time per epoch: 1:27
 lowest loss: 133,091
 final loss: 133,091
+accuracy: 1.02%
 log:
 Epoch 1 , Game batch 1 completed, Loss: 130637351.424
 Epoch 1 , Game batch 2 completed, Loss: 1880455.278
