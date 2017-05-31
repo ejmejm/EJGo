@@ -5,7 +5,7 @@ import numpy as np
 #Most of code used from http://stackoverflow.com/questions/4954395/create-board-game-like-grid-in-python
 
 class GameBoard(tk.Frame):
-    def __init__(self, parent, rows=18, columns=18, size=54, color1="tan", color2="tan"):
+    def __init__(self, parent, rows=18, columns=18, size=40, color1="tan", color2="tan"):
 
         self.offset = 4
         self.stone_size = size - self.offset
@@ -29,8 +29,9 @@ class GameBoard(tk.Frame):
         self.canvas.bind("<Configure>", self.refresh)
 
         def click(event):
-            x = int((event.x + self.offset*9) / self.stone_size)
-            y = self.columns - int((event.y - self.offset*16) / self.stone_size)
+            print(event.x, self.offset, self.size)
+            x = int((event.x + self.size/2) / self.size)
+            y = self.columns - int((event.y - self.size*1.5) / self.size)
             print(x, ", ", y)
             advance_turn(x, y)
 
@@ -38,6 +39,7 @@ class GameBoard(tk.Frame):
 
     def addpiece(self, name, image, row=0, column=0):
         #Add a piece to the playing board
+		#TODO: Add image resizing
         self.canvas.create_image(0,0, image=image, tags=(name, "piece"), anchor="c")
         self.placepiece(name, row, column)
 

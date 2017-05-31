@@ -5,10 +5,6 @@ import board as go_board
 
 board_size = 19
 
-n_nodes_hl1 = 300
-n_nodes_hl2 = 300
-n_nodes_hl3 = 300
-
 n_classes = board_size * board_size
 
 sess = tf.Session()
@@ -23,15 +19,15 @@ def maxpool2d(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
 def cnn_forward(data):
-    weights = {"W_conv1": tf.Variable(tf.random_normal([5, 5, 1, 32])),
-    "W_conv2": tf.Variable(tf.random_normal([5, 5, 32, 64])),
-    "W_fc": tf.Variable(tf.random_normal([7*7*64, 1024])),
+    weights = {"W_conv1": tf.Variable(tf.random_normal([19, 19, 1, 64])),
+    "W_conv2": tf.Variable(tf.random_normal([19, 19, 128, 128])),
+    "W_fc": tf.Variable(tf.random_normal([19*19*128, 1024])),
     "out": tf.Variable(tf.random_normal([1024, n_classes]))}
 
-    weights = {"b_conv1": tf.Variable(tf.random_normal([32])),
-    "b_conv2": tf.Variable(tf.random_normal([64])),
+    weights = {"b_conv1": tf.Variable(tf.random_normal([64])),
+    "b_conv2": tf.Variable(tf.random_normal([128])),
     "b_fc": tf.Variable(tf.random_normal([1024])),
-    "out": tf.Variable(tf.random_normal([n_classes]))}
+    "out": tf.Variable(tf.random_normal([1024, n_classes]))}
 
     data = tf.reshape(data, shape=[-1, 19, 19, 1])
 
@@ -41,37 +37,10 @@ def cnn_forward(data):
     conv2 = conv2d(conv1, weights["W_conv2"])
     conv2 = maxpool2d(conv2)
 
-    fc = tf.reshape(conv2, [-1, 5*5*64])
+    fc = tf.reshape(conv2, [-1, 19*19*128])
     fc = tf.nn.tanh(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
 
     output = tf.matmul(fc, weights["out"]) + biases["out"]
-
-    return output
-
-def nn_forward(data):
-    hidden_1_layer = {"weights": tf.Variable(tf.random_normal([board_size * board_size, n_nodes_hl1])),
-    "biases": tf.Variable(tf.random_normal([n_nodes_hl1]))}
-    #print(tf.shape(hidden_1_layer["weights"]))
-
-    hidden_2_layer = {"weights": tf.Variable(tf.random_normal([n_nodes_hl1, n_nodes_hl2])),
-    "biases": tf.Variable(tf.random_normal([n_nodes_hl2]))}
-
-    hidden_3_layer = {"weights": tf.Variable(tf.random_normal([n_nodes_hl2, n_nodes_hl3])),
-    "biases": tf.Variable(tf.random_normal([n_nodes_hl3]))}
-
-    output_layer = {"weights": tf.Variable(tf.random_normal([n_nodes_hl3, n_classes])),
-    "biases": tf.Variable(tf.random_normal([n_classes]))}
-
-    l1 = tf.add(tf.matmul(data, hidden_1_layer["weights"]), hidden_1_layer["biases"])
-    l1 = tf.nn.tanh(l1)
-
-    l2 = tf.add(tf.matmul(l1, hidden_2_layer["weights"]), hidden_2_layer["biases"])
-    l2 = tf.nn.tanh(l2)
-
-    l3 = tf.add(tf.matmul(l2, hidden_3_layer["weights"]), hidden_3_layer["biases"])
-    l3 = tf.nn.tanh(l3)
-
-    output = tf.matmul(l3, output_layer["weights"]) + output_layer["biases"]
 
     return output
 
@@ -151,44 +120,3 @@ def predict_move(board, model, level=0, bot_tile=1):
             move_found = True
             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
         i += 1
-
-def test_accuracy(gameData):
-    prediction = nn_forward(x)
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
-    optimizer = tf.train.AdamOptimizer().minimize(cost)
-    saver = tf.train.Saver()
-    save_path = "checkpoints/next_move_model.ckpt"
-
-    hm_epochs = 5
-    batch_size = len(gameData)/5
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-
-        for epoch in range(hm_epochs):
-            epoch_loss = 0
-            game_loss = 0
-            game_index = 0
-            game_counter = 0
-            for index in range(len(gameData)):
-                board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
-                for node in gameData[index].get_main_sequence():
-                    board = -board; # Changes player perspective, black becomes white and vice versa
-                    if node.get_move()[1] != None:
-                        next_move = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
-                        next_move[0][node.get_move()[1][0] * board_size +
-                        node.get_move()[1][1]] = 1 # y = an array in the form [board_x_position, board_y_position]
-                        _, c = sess.run([optimizer, cost], feed_dict = {x: board, y: next_move})
-                        epoch_loss += c
-                        game_loss += c
-                        board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
-                game_counter += 1
-                if game_counter % batch_size == 0:
-                    game_index += 1
-                    print("Epoch", epoch+1, ", Game batch", game_index, "completed, Loss:", game_loss)
-                    game_loss = 0
-                    game_counter = 0
-
-            saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n")
-        saver.save(sess=sess, save_path=save_path)

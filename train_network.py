@@ -7,8 +7,11 @@ import go_nn as go_learn
 kifuPath = "./kifu"
 games = []
 num_games = 100
+type = 0
 if len(sys.argv) == 2:
     num_games = int(sys.argv[1])
+if len(sys.argv) == 3:
+	type = int(sys.argv[2])
 
 print("Loading game data...")
 
