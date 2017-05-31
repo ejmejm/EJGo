@@ -25,7 +25,7 @@ def maxpool2d(x):
 
 def cnn_forward(data):
     weights = {"W_conv1": tf.Variable(tf.random_normal([5, 5, 1, 128])),
-    "W_conv2": tf.Variable(tf.random_normal([5, 5, 32, 256])),
+    "W_conv2": tf.Variable(tf.random_normal([5, 5, 128, 256])),
     "W_fc": tf.Variable(tf.random_normal([5*5*256, 1024])),
     "out": tf.Variable(tf.random_normal([1024, n_classes]))}
 

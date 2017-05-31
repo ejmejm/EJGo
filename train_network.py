@@ -8,9 +8,9 @@ kifuPath = "./kifu"
 games = []
 num_games = 5000
 nnType = "nn"
-if len(sys.argv) == 2:
+if len(sys.argv) >= 2:
     num_games = int(sys.argv[1])
-if len(sys.argv) == 3:
+if len(sys.argv) >= 3:
 	nnType = sys.argv[2]
 
 print("Loading game data...")
