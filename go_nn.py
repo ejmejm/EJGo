@@ -25,10 +25,10 @@ def maxpool2d(x):
 def cnn_forward(data):
     weights = {"W_conv1": tf.Variable(tf.random_normal([5, 5, 1, 32])),
     "W_conv2": tf.Variable(tf.random_normal([5, 5, 32, 64])),
-    "W_fc": tf.Variable(tf.random_normal([7*7*64, 1024])),
+    "W_fc": tf.Variable(tf.random_normal([5*5*64, 1024])),
     "out": tf.Variable(tf.random_normal([1024, n_classes]))}
 
-    weights = {"b_conv1": tf.Variable(tf.random_normal([32])),
+    biases = {"b_conv1": tf.Variable(tf.random_normal([32])),
     "b_conv2": tf.Variable(tf.random_normal([64])),
     "b_fc": tf.Variable(tf.random_normal([1024])),
     "out": tf.Variable(tf.random_normal([n_classes]))}
@@ -42,7 +42,7 @@ def cnn_forward(data):
     conv2 = maxpool2d(conv2)
 
     fc = tf.reshape(conv2, [-1, 5*5*64])
-    fc = tf.nn.tanh(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
+    fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]) #try tanh
 
     output = tf.matmul(fc, weights["out"]) + biases["out"]
 
@@ -85,8 +85,11 @@ def load(save_path):
     return {"session": sess, "prediction": pred}
 
 
-def train_neural_network(x, gameData):
-    prediction = nn_forward(x)
+def train_neural_network(x, gameData, nnType="nn"):
+    if nnType == "cnn":
+        prediction = cnn_forward(x)
+    else: # Normal neural network
+        prediction = nn_forward(x)
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     saver = tf.train.Saver()
@@ -126,8 +129,8 @@ def train_neural_network(x, gameData):
             print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n")
         saver.save(sess=sess, save_path=save_path)
 
-def train(gameData):
-    train_neural_network(x, gameData)
+def train(gameData, nnType):
+    train_neural_network(x, gameData, nnType)
 
 def get_prob_board(board, model):
     board = board.reshape(1, board_size * board_size)

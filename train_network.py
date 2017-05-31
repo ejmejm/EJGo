@@ -7,11 +7,11 @@ import go_nn as go_learn
 kifuPath = "./kifu"
 games = []
 num_games = 100
-type = 0
+nnType = "nn"
 if len(sys.argv) == 2:
     num_games = int(sys.argv[1])
 if len(sys.argv) == 3:
-	type = int(sys.argv[2])
+	nnType = sys.argv[2]
 
 print("Loading game data...")
 
@@ -25,5 +25,5 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
 print("Done loading games")
 
 print("Begin training...")
-go_learn.train(games)
+go_learn.train(games, nnType)
 print("Finished training")
