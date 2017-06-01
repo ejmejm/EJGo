@@ -1,7 +1,7 @@
 import numpy as np
 import queue
 
-def make_move(board, move, player):
+def make_move(board, move, player, debug=False):
     board[move[0]][move[1]] = player
     enemy = -player
     empty = 0
@@ -21,7 +21,8 @@ def make_move(board, move, player):
         group_captures += 1
     if group_captures == 0 and check_liberties(board, move) == 0:
         board[move[0]][move[1]] = empty
-        print("ERROR! Illegal suicide move")
+        if debug == True:
+            print("ERROR! Illegal suicide move")
         return None
 
     return board

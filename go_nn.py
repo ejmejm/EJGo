@@ -18,32 +18,57 @@ x = tf.placeholder(tf.float32, [None, board_size * board_size])
 y = tf.placeholder(tf.float32, [None, board_size * board_size])
 
 def conv2d(x, W):
-    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding="SAME")
+    padded = tf.pad(x, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    return tf.nn.conv2d(padded, W, strides=[1, 1, 1, 1], padding="VALID")
 
 def maxpool2d(x):
-    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
+    padded = tf.pad(x, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
+    return tf.nn.max_pool(padded, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
 def cnn_forward(data):
-    weights = {"W_conv1": tf.Variable(tf.random_normal([5, 5, 1, 128])),
-    "W_conv2": tf.Variable(tf.random_normal([5, 5, 128, 256])),
-    "W_fc": tf.Variable(tf.random_normal([5*5*256, 1024])),
-    "out": tf.Variable(tf.random_normal([1024, n_classes]))}
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 64])),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 64, 64])),
+    "W_conv3": tf.Variable(tf.random_normal([3, 3, 64, 128])),
+    "W_conv4": tf.Variable(tf.random_normal([3, 3, 128, 128])),
+    "W_conv5": tf.Variable(tf.random_normal([3, 3, 128, 256])),
+    "W_conv6": tf.Variable(tf.random_normal([3, 3, 256, 256])),
+    "W_fc": tf.Variable(tf.random_normal([6*6*256, 2048])),
+    "out": tf.Variable(tf.random_normal([2048, n_classes]))}
 
-    biases = {"b_conv1": tf.Variable(tf.random_normal([128])),
-    "b_conv2": tf.Variable(tf.random_normal([256])),
-    "b_fc": tf.Variable(tf.random_normal([1024])),
+    biases = {"b_conv1": tf.Variable(tf.random_normal([64])),
+    "b_conv2": tf.Variable(tf.random_normal([64])),
+    "b_conv3": tf.Variable(tf.random_normal([128])),
+    "b_conv4": tf.Variable(tf.random_normal([128])),
+    "b_conv5": tf.Variable(tf.random_normal([256])),
+    "b_conv6": tf.Variable(tf.random_normal([256])),
+    "b_fc": tf.Variable(tf.random_normal([2048])),
+    "b_fc2": tf.Variable(tf.random_normal([2048])),
     "out": tf.Variable(tf.random_normal([n_classes]))}
 
     data = tf.reshape(data, shape=[-1, 19, 19, 1])
 
-    conv1 = conv2d(data, weights["W_conv1"])
-    conv1 = maxpool2d(conv1)
+    conv1 = conv2d(data, weights["W_conv1"]) + biases["b_conv1"]
+    conv1 = tf.nn.relu(conv1)
 
-    conv2 = conv2d(conv1, weights["W_conv2"])
-    conv2 = maxpool2d(conv2)
+    conv2 = conv2d(conv1, weights["W_conv2"]) + biases["b_conv2"]
+    conv2 = tf.nn.relu(conv2)
 
-    fc = tf.reshape(conv2, [-1, 5*5*256])
-    fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]) #try tanh
+    conv3 = conv2d(conv2, weights["W_conv3"]) + biases["b_conv3"]
+    conv3 = tf.nn.relu(conv3)
+
+    conv4 = conv2d(conv3, weights["W_conv4"]) + biases["b_conv4"]
+    conv4 = tf.nn.relu(conv4)
+    conv4 = maxpool2d(conv4)
+
+    conv5 = conv2d(conv4, weights["W_conv5"]) + biases["b_conv5"]
+    conv5 = tf.nn.relu(conv5)
+
+    conv6 = conv2d(conv5, weights["W_conv6"]) + biases["b_conv6"]
+    conv6 = tf.nn.relu(conv6)
+    conv6 = maxpool2d(conv6)
+
+    fc = tf.reshape(conv6, [-1, 6*6*256])
+    fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
 
     output = tf.matmul(fc, weights["out"]) + biases["out"]
 
@@ -154,7 +179,7 @@ def predict_move(board, model, level=0, bot_tile=1):
         if i >= len(c_board):
             move_found = True
             return(-1)
-        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), bot_tile) != None:
+        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), bot_tile, debug=False) != None:
             c_board[int(sorted_board[i][0])] = 1
             move_found = True
             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])

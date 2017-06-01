@@ -6,7 +6,7 @@ import go_nn as go_learn
 
 kifuPath = "./kifu"
 games = []
-num_games = 200
+num_games = 1000
 
 print("Loading game data...")
 
@@ -16,13 +16,13 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
         with open(filename, "rb") as f:
             games.append(sgf.Sgf_game.from_bytes(f.read()))
             i += 1
-games = games[100:]
+games = games[950:]
 
 print("Done loading games")
 
 go_learn.mode = "cnn"
 model = go_learn.load("checkpoints/next_move_model.ckpt")
 
-print("Begin training...")
+print("Begin testing...")
 go_learn.test_accuracy(games, model)
-print("Finished training")
+print("Finished testing")
