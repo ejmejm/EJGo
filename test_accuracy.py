@@ -24,5 +24,5 @@ go_learn.mode = "cnn"
 model = go_learn.load("checkpoints/next_move_model.ckpt")
 
 print("Begin testing...")
-go_learn.test_accuracy(games, None)
+print("Accuracy:", go_learn.test_accuracy(games, model)*100, "%")
 print("Finished testing")

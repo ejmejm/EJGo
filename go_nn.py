@@ -122,7 +122,6 @@ def load(save_path):
 
     sess.run(tf.global_variables_initializer())
     saver.restore(sess=sess, save_path=save_path)
-    prediction = pred
     return {"session": sess, "prediction": pred}
 
 # Changes the player turn by changing 1s to 2s and vice versa
@@ -178,7 +177,7 @@ def train_neural_network(x, gameData, nnType="cnn"):
                     game_counter = 0
 
             saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n")
+            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData, nnType):
@@ -187,7 +186,7 @@ def train(gameData, nnType):
 def get_prob_board(board, model):
     board = board.reshape(1, board_size * board_size)
 
-    move = sess.run(model["prediction"], feed_dict = {x: board, keep_prob: 1.0})
+    move = model["session"].run(model["prediction"], feed_dict = {x: board, keep_prob: 1.0})
     return move
 
 def predict_move(board, model, level=0):
@@ -215,13 +214,11 @@ def test_accuracy(gameData, model):
         for node in gameData[index].get_main_sequence():
             vfunc = np.vectorize(switch_player_perspec)
             board = vfunc(board) # Changes player perspective, black becomes white and vice versa
-            #predicted_move = predict_move(board.reshape(1, board_size * board_size), model)
-            predicted_move = [1, 1]
+            predicted_move = predict_move(board.reshape(1, board_size * board_size), model)
             if node.get_move()[1] != None:
                 board = board.reshape(board_size, board_size)
                 board[node.get_move()[1][0]][node.get_move()[1][1]] = global_vars_go.bot_in
                 if node.get_move()[1][0] == predicted_move[0] and node.get_move()[1][1] == predicted_move[1]:
                     correct += 1
                 total += 1
-    print("Accuracy:", (correct/total*100), "%")
     return correct/total
