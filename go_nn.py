@@ -190,7 +190,7 @@ def get_prob_board(board, model):
     move = sess.run(model["prediction"], feed_dict = {x: board, keep_prob: 1.0})
     return move
 
-def predict_move(board, model, level=0, bot_tile=1):
+def predict_move(board, model, level=0):
     c_board = np.copy(board.reshape(board_size * board_size))
     prob_board = get_prob_board(c_board, model).reshape(board_size * board_size)
     sorted_board = np.asarray(sorted(enumerate(prob_board), reverse = True, key=lambda i:i[1]))
@@ -201,7 +201,7 @@ def predict_move(board, model, level=0, bot_tile=1):
         if i >= len(c_board):
             move_found = True
             return(-1)
-        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), bot_tile, debug=False) != None:
+        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), global_vars_go.bot_in, global_vars_go.player_in, debug=False) != None:
             c_board[int(sorted_board[i][0])] = 1
             move_found = True
             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
@@ -224,3 +224,4 @@ def test_accuracy(gameData, model):
                     correct += 1
                 total += 1
     print("Accuracy:", (correct/total*100), "%")
+    return correct/total
