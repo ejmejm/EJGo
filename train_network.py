@@ -20,7 +20,7 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
     if i < num_games:
         with open(filename, "rb") as f:
             games.append(sgf.Sgf_game.from_bytes(f.read()))
-            i += 1
+    i += 1
 
 print("Done loading", len(games), "games")
 
