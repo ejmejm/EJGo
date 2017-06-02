@@ -2,8 +2,9 @@ import tensorflow as tf
 import numpy as np
 import time
 import board as go_board
+import global_vars_go
 
-mode = "nn"
+mode = "cnn"
 board_size = 19
 
 n_nodes_hl1 = 300
@@ -124,18 +125,28 @@ def load(save_path):
     prediction = pred
     return {"session": sess, "prediction": pred}
 
+# Changes the player turn by changing 1s to 2s and vice versa
+def switch_player_perspec(arry):
+    if arry == global_vars_go.bot_in:
+        return global_vars_go.player_in
+    elif arry == global_vars_go.player_in:
+        return global_vars_go.bot_in
+    else:
+        return 0
 
-def train_neural_network(x, gameData, nnType="nn"):
+def train_neural_network(x, gameData, nnType="cnn"):
     if nnType == "cnn":
+        print("Training with a cnn")
         prediction = cnn_forward(x)
     else: # Normal neural network
+        print("Training with a standard nn")
         prediction = nn_forward(x)
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
-    hm_epochs = 5
+    hm_epochs = 10
     batch_size = len(gameData)/5
 
     with tf.Session() as sess:
@@ -149,7 +160,8 @@ def train_neural_network(x, gameData, nnType="nn"):
             for index in range(len(gameData)):
                 board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
                 for node in gameData[index].get_main_sequence():
-                    board = -board; # Changes player perspective, black becomes white and vice versa
+                    vfunc = np.vectorize(switch_player_perspec)
+                    board = vfunc(board) # Changes player perspective, black becomes white and vice versa
                     if node.get_move()[1] != None:
                         next_move = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
                         next_move[0][node.get_move()[1][0] * board_size +
@@ -201,11 +213,13 @@ def test_accuracy(gameData, model):
     for index in range(len(gameData)):
         board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
         for node in gameData[index].get_main_sequence():
-            board = -board; # Changes player perspective, black becomes white and vice versa
-            predicted_move = predict_move(board.reshape(1, board_size * board_size), model)
+            vfunc = np.vectorize(switch_player_perspec)
+            board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+            #predicted_move = predict_move(board.reshape(1, board_size * board_size), model)
+            predicted_move = [1, 1]
             if node.get_move()[1] != None:
                 board = board.reshape(board_size, board_size)
-                board[node.get_move()[1][0]][node.get_move()[1][1]] = 1
+                board[node.get_move()[1][0]][node.get_move()[1][1]] = global_vars_go.bot_in
                 if node.get_move()[1][0] == predicted_move[0] and node.get_move()[1][1] == predicted_move[1]:
                     correct += 1
                 total += 1

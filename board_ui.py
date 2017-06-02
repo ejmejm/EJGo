@@ -76,9 +76,9 @@ def advance_turn(x, y):
     controller.take_turn(np.array([x, y]), set_stones)
 
 def place_stone(x, y, player):
-    if player == -1:
+    if player == controller.player:
         ui_board.addpiece(str(x) + " " + str(y), player1, ui_board.columns - y, x)
-    elif player == 1:
+    elif player == controller.bot:
         ui_board.addpiece(str(x) + " " + str(y), player2, ui_board.columns - y, x)
 
 def set_stones(board):

@@ -7,7 +7,7 @@ import go_nn as go_learn
 kifuPath = "./kifu"
 games = []
 num_games = 100
-nnType = "nn"
+nnType = "cnn"
 if len(sys.argv) >= 2:
     num_games = int(sys.argv[1])
 if len(sys.argv) >= 3:

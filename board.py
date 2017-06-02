@@ -1,9 +1,8 @@
 import numpy as np
 import queue
 
-def make_move(board, move, player, debug=False):
+def make_move(board, move, player, enemy, debug=False):
     board[move[0]][move[1]] = player
-    enemy = -player
     empty = 0
 
     group_captures = 0
