@@ -3,6 +3,8 @@ import numpy as np
 import time
 import board as go_board
 import global_vars_go
+import matplotlib.pyplot as plt
+from sgfmill.sgfmill import sgf_moves
 
 mode = "cnn"
 board_size = 19
@@ -165,8 +167,8 @@ def train_neural_network(x, gameData, nnType="cnn"):
             batch_display_index = 0
             train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
             train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-            for game_index in range(len(train_data)): # Relative index of game to batch
-                board = np.zeros(board_size * board_size).reshape(board_size, board_size)
+            for game_index in range(len(train_data)):
+                board = setup_board(train_data[game_index])
                 for node in train_data[game_index].get_main_sequence():
                     vfunc = np.vectorize(switch_player_perspec)
                     board = vfunc(board) # Changes player perspective, black becomes white and vice versa
@@ -176,7 +178,22 @@ def train_neural_network(x, gameData, nnType="cnn"):
                         next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
                         next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
                         train_next_moves.append(next_move)
-                        board[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # Update board with new move
+
+                        # Debugging - printing and board graph
+                        # print(train_boards[-1])
+                        # print(train_next_moves[-1].astype(int))
+                        # plt.imshow(train_boards[-1])
+                        # ax = plt.gca();
+                        # ax.grid(color='black', linestyle='-', linewidth=1)
+                        # ax.set_xticks(np.arange(0, 19, 1));
+                        # ax.set_yticks(np.arange(0, 19, 1));
+                        # ax.set_xticklabels(np.arange(0, 19, 1));
+                        # ax.set_yticklabels(np.arange(0, 19, 1));
+                        # plt.show()
+
+                        board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
+                        if board is None:
+                            print("ERROR! Illegal move, {}, while training".format(node_move[1]))
                     if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
                         _, c = sess.run([optimizer, cost], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
                         epoch_loss += c
@@ -186,8 +203,8 @@ def train_neural_network(x, gameData, nnType="cnn"):
                         batch_index += 1
                         if batch_index >= batch_display_stride:
                             batch_index = 0
-                            print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index+1, batch_loss))
                             batch_display_index += 1
+                            print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index, batch_loss))
                             batch_loss = 0
 
             # Finish of what is remaining in the batch and give a visual update
@@ -229,7 +246,7 @@ def test_accuracy(gameData, model):
     train_actual_moves = []
     train_boards = []
     for game_index in range(len(gameData)): # Relative index of game to batch
-        board = np.zeros(board_size * board_size).reshape(board_size, board_size)
+        board = setup_board(gameData[game_index])
         for node in gameData[game_index].get_main_sequence():
             vfunc = np.vectorize(switch_player_perspec)
             board = vfunc(board) # Changes player perspective, black becomes white and vice versa
@@ -237,7 +254,9 @@ def test_accuracy(gameData, model):
             if node_move[1] is not None:
                 train_boards.append(np.copy(board))
                 train_actual_moves.append([node_move[1][0], node_move[1][1]])
-                board[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # Update board with new move
+                board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
+                if board is None:
+                    print("ERROR! Illegal move, {}, while training".format(node_move[1]))
             if len(train_actual_moves) >= batch_size: # Send chunk to GPU at batch limit
                 prob_boards = get_prob_board(np.array(train_boards), model).reshape((-1, board_size, board_size))
                 train_predicted_moves = []
@@ -257,3 +276,18 @@ def test_accuracy(gameData, model):
         total += 1
 
     return correct/total
+
+def setup_board(game):
+    preboard, plays = sgf_moves.get_setup_and_moves(game)
+    rpreboard = preboard.board
+    board = np.zeros((board_size, board_size))
+    if plays[0][0] == "b":
+        color_stone = global_vars_go.bot_in
+    else:
+        color_stone = global_vars_go.player_in
+    for i in range(len(rpreboard)):
+        for j in range(len(rpreboard[i])):
+            if rpreboard[i][j] == "b":
+                board[i][j] = color_stone
+
+    return board.astype(int)
