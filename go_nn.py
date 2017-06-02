@@ -14,8 +14,12 @@ n_classes = board_size * board_size
 
 sess = tf.Session()
 
+# IO placeholders
 x = tf.placeholder(tf.float32, [None, board_size * board_size])
 y = tf.placeholder(tf.float32, [None, board_size * board_size])
+
+# Dropout placeholder
+keep_prob = tf.placeholder(tf.float32)
 
 def conv2d(x, W):
     padded = tf.pad(x, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
@@ -26,6 +30,7 @@ def maxpool2d(x):
     return tf.nn.max_pool(padded, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
 def cnn_forward(data):
+    # Weights
     weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 64])),
     "W_conv2": tf.Variable(tf.random_normal([3, 3, 64, 64])),
     "W_conv3": tf.Variable(tf.random_normal([3, 3, 64, 128])),
@@ -35,6 +40,7 @@ def cnn_forward(data):
     "W_fc": tf.Variable(tf.random_normal([6*6*256, 2048])),
     "out": tf.Variable(tf.random_normal([2048, n_classes]))}
 
+    # Biases
     biases = {"b_conv1": tf.Variable(tf.random_normal([64])),
     "b_conv2": tf.Variable(tf.random_normal([64])),
     "b_conv3": tf.Variable(tf.random_normal([128])),
@@ -47,6 +53,7 @@ def cnn_forward(data):
 
     data = tf.reshape(data, shape=[-1, 19, 19, 1])
 
+    # Forward prop
     conv1 = conv2d(data, weights["W_conv1"]) + biases["b_conv1"]
     conv1 = tf.nn.relu(conv1)
 
@@ -70,7 +77,10 @@ def cnn_forward(data):
     fc = tf.reshape(conv6, [-1, 6*6*256])
     fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
 
-    output = tf.matmul(fc, weights["out"]) + biases["out"]
+    # Dropout
+    fc_drop = tf.nn.dropout(fc, keep_prob)
+
+    output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
 
     return output
 
@@ -144,7 +154,7 @@ def train_neural_network(x, gameData, nnType="nn"):
                         next_move = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
                         next_move[0][node.get_move()[1][0] * board_size +
                         node.get_move()[1][1]] = 1 # y = an array in the form [board_x_position, board_y_position]
-                        _, c = sess.run([optimizer, cost], feed_dict = {x: board, y: next_move})
+                        _, c = sess.run([optimizer, cost], feed_dict = {x: board, y: next_move, keep_prob: 0.5})
                         epoch_loss += c
                         game_loss += c
                         board[0][node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
@@ -165,7 +175,7 @@ def train(gameData, nnType):
 def get_prob_board(board, model):
     board = board.reshape(1, board_size * board_size)
 
-    move = sess.run(model["prediction"], feed_dict = {x: board})
+    move = sess.run(model["prediction"], feed_dict = {x: board, keep_prob: 1.0})
     return move
 
 def predict_move(board, model, level=0, bot_tile=1):
