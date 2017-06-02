@@ -12,7 +12,7 @@ n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
 batch_size = 200 # How many board states (not full games) to send to GPU at once, this is about the max with my GPU's RAM
-batch_display_stride = 20 # How many batches to send to GPU before displaying a visual update
+batch_display_stride = 40 # How many batches to send to GPU before displaying a visual update
 
 n_classes = board_size * board_size
 
@@ -148,8 +148,12 @@ def train_neural_network(x, gameData, nnType="cnn"):
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
+    test_split = 100 # How many games are reserved for testing
+    train_data = gameData[:-test_split]
+    test_data = gameData[-test_split:]
+
     hm_epochs = 100
-    hm_batches = int(len(gameData)/batch_size)
+    hm_batches = int(len(train_data)/batch_size)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -161,9 +165,9 @@ def train_neural_network(x, gameData, nnType="cnn"):
             batch_display_index = 0
             train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
             train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-            for game_index in range(len(gameData)): # Relative index of game to batch
+            for game_index in range(len(train_data)): # Relative index of game to batch
                 board = np.zeros(board_size * board_size).reshape(board_size, board_size)
-                for node in gameData[game_index].get_main_sequence():
+                for node in train_data[game_index].get_main_sequence():
                     vfunc = np.vectorize(switch_player_perspec)
                     board = vfunc(board) # Changes player perspective, black becomes white and vice versa
                     node_move = node.get_move()
@@ -191,7 +195,7 @@ def train_neural_network(x, gameData, nnType="cnn"):
             epoch_loss += c
 
             saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
+            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(test_data, {"session": sess, "prediction": prediction}),"\n")
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData, nnType):
