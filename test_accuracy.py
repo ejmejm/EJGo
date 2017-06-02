@@ -7,16 +7,16 @@ import go_nn as go_learn
 kifuPath = "./kifu"
 games = []
 num_games = 1000
+from_game = 100000
 
 print("Loading game data...")
 
 i = 0
 for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
-    if i < num_games:
+    if from_game < i < from_game+num_games:
         with open(filename, "rb") as f:
             games.append(sgf.Sgf_game.from_bytes(f.read()))
-            i += 1
-games = games[950:]
+    i += 1
 
 print("Done loading games")
 

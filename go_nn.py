@@ -191,16 +191,15 @@ def train_neural_network(x, gameData, nnType="cnn"):
             epoch_loss += c
 
             saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n") #"Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
+            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData, nnType):
     train_neural_network(x, gameData, nnType)
 
-def get_prob_board(board, model):
-    board = board.reshape(1, board_size * board_size)
-
-    move = model["session"].run(model["prediction"], feed_dict = {x: board, keep_prob: 1.0})
+def get_prob_board(boards, model):
+    boards = boards.reshape(-1, board_size * board_size)
+    move = model["session"].run(model["prediction"], feed_dict = {x: boards, keep_prob: 1.0})
     return move
 
 def predict_move(board, model, level=0):
@@ -224,7 +223,7 @@ def test_accuracy(gameData, model):
     total = 0
     correct = 0
     train_actual_moves = []
-    train_predicted_moves = []
+    train_boards = []
     for game_index in range(len(gameData)): # Relative index of game to batch
         board = np.zeros(board_size * board_size).reshape(board_size, board_size)
         for node in gameData[game_index].get_main_sequence():
@@ -232,18 +231,21 @@ def test_accuracy(gameData, model):
             board = vfunc(board) # Changes player perspective, black becomes white and vice versa
             node_move = node.get_move()
             if node_move[1] is not None:
-                prob_board = get_prob_board(board, model).reshape(board_size, board_size)
-                unrav_tuple = np.unravel_index(prob_board.argmax(), prob_board.shape)
-                train_predicted_moves.append([unrav_tuple[0], unrav_tuple[1]])
+                train_boards.append(np.copy(board))
                 train_actual_moves.append([node_move[1][0], node_move[1][1]])
                 board[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # Update board with new move
             if len(train_actual_moves) >= batch_size: # Send chunk to GPU at batch limit
+                prob_boards = get_prob_board(np.array(train_boards), model).reshape((-1, board_size, board_size))
+                train_predicted_moves = []
+                for pb in prob_boards:
+                    unrav_tuple = np.unravel_index(pb.argmax(), pb.shape)
+                    train_predicted_moves.append([unrav_tuple[0], unrav_tuple[1]])
                 for i in range(len(train_actual_moves)): # Test the accuracy of the batch
                     if train_actual_moves[i][0] == train_predicted_moves[i][0] and train_actual_moves[i][1] == train_predicted_moves[i][1]:
                         correct += 1
                     total += 1
                 train_boards = []
-                train_next_moves = []
+                train_actual_moves = []
 
     for i in range(len(train_actual_moves)): # Test the accuracy of the leftover batch
         if train_actual_moves[i][0] == train_predicted_moves[i][0] and train_actual_moves[i][1] == train_predicted_moves[i][1]:
