@@ -11,6 +11,9 @@ n_nodes_hl1 = 300
 n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
+batch_size = 200 # How many board states (not full games) to send to GPU at once, this is about the max with my GPU's RAM
+batch_display_stride = 20 # How many batches to send to GPU before displaying a visual update
+
 n_classes = board_size * board_size
 
 sess = tf.Session()
@@ -145,35 +148,50 @@ def train_neural_network(x, gameData, nnType="cnn"):
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
-    hm_epochs = 10
-    hm_batches = 10
-    batch_size = int(len(gameData)/hm_batches)
+    hm_epochs = 100
+    hm_batches = int(len(gameData)/batch_size)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
         for epoch in range(hm_epochs):
             epoch_loss = 0
-            for batch_index in range(hm_batches): # Train in batches at a time
-                train_boards = np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-                train_next_moves = np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-                for game_index in range(batch_size): # Relative index of game to batch
-                    board = np.zeros(board_size * board_size).reshape(board_size * board_size)
-                    for node in gameData[game_index + batch_index * batch_size].get_main_sequence():
-                        vfunc = np.vectorize(switch_player_perspec)
-                        board = vfunc(board) # Changes player perspective, black becomes white and vice versa
-                        if node.get_move()[1] is not None:
-                            next_move = np.zeros(board_size * board_size).reshape(board_size * board_size)
-                            next_move[node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # y = an array in the form [board_x_position, board_y_position]
-                            train_next_moves[game_index] = next_move
-                            board[node.get_move()[1][0] * board_size + node.get_move()[1][1]] = 1 # Update board with new move
-                            train_boards[game_index] = np.copy(board)
-                _, c = sess.run([optimizer, cost], feed_dict = {x: train_boards, y: train_next_moves, keep_prob: 0.5})
-                epoch_loss += c
-                print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_index+1, c))
+            batch_loss = 0
+            batch_index = 0
+            batch_display_index = 0
+            train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
+            train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
+            for game_index in range(len(gameData)): # Relative index of game to batch
+                board = np.zeros(board_size * board_size).reshape(board_size, board_size)
+                for node in gameData[game_index].get_main_sequence():
+                    vfunc = np.vectorize(switch_player_perspec)
+                    board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+                    node_move = node.get_move()
+                    if node_move[1] is not None:
+                        train_boards.append(np.copy(board))
+                        next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
+                        next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
+                        train_next_moves.append(next_move)
+                        board[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # Update board with new move
+                    if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
+                        _, c = sess.run([optimizer, cost], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
+                        epoch_loss += c
+                        batch_loss += c
+                        train_boards = []
+                        train_next_moves = []
+                        batch_index += 1
+                        if batch_index >= batch_display_stride:
+                            batch_index = 0
+                            print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index+1, batch_loss))
+                            batch_display_index += 1
+                            batch_loss = 0
+
+            # Finish of what is remaining in the batch and give a visual update
+            _, c = sess.run([optimizer, cost], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
+            epoch_loss += c
 
             saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
+            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "\n") #"Accuracy:", test_accuracy(gameData, {"session": sess, "prediction": prediction}),"\n")
         saver.save(sess=sess, save_path=save_path)
 
 def train(gameData, nnType):
@@ -205,16 +223,23 @@ def predict_move(board, model, level=0):
 def test_accuracy(gameData, model):
     total = 0
     correct = 0
-    for index in range(len(gameData)):
-        board = np.zeros(board_size * board_size).reshape(1, board_size * board_size)
-        for node in gameData[index].get_main_sequence():
-            vfunc = np.vectorize(switch_player_perspec)
-            board = vfunc(board) # Changes player perspective, black becomes white and vice versa
-            predicted_move = predict_move(board.reshape(1, board_size * board_size), model)
-            if node.get_move()[1] is not None:
-                board = board.reshape(board_size, board_size)
-                board[node.get_move()[1][0]][node.get_move()[1][1]] = global_vars_go.bot_in
-                if node.get_move()[1][0] == predicted_move[0] and node.get_move()[1][1] == predicted_move[1]:
-                    correct += 1
-                total += 1
+    hm_a_batches = int(len(gameData)/batch_size)
+    for batch_index in range(hm_a_batches): # Test in batches at a time
+        train_actual_moves = np.zeros(batch_size * 2).reshape(batch_size, 2)
+        train_predicted_moves = np.zeros(batch_size * 2).reshape(batch_size, 2)
+        for game_index in range(batch_size): # Relative index of game to batch
+            board = np.zeros(board_size * board_size).reshape(board_size * board_size)
+            for node in gameData[game_index + batch_size * batch_index].get_main_sequence():
+                vfunc = np.vectorize(switch_player_perspec)
+                board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+                if node.get_move()[1] is not None:
+                    train_predicted_moves[game_index] = predict_move(board, model)
+                    train_actual_moves[game_index] = np.array([node.get_move()[1][0], node.get_move()[1][1]])
+                    print("pred:", train_predicted_moves[game_index])
+                    print("actual:", train_actual_moves[game_index])
+                    board[int(train_actual_moves[game_index][0])][int(train_actual_moves[game_index][1])] = global_vars_go.bot_in
+        for i in range(train_actual_moves):
+            if train_actual_moves[i][0] == train_predicted_moves[i][0] and train_actual_moves[i][1] == train_predicted_moves[i][1]:
+                correct += 1
+            total += 1
     return correct/total
