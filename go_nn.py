@@ -280,7 +280,7 @@ def test_accuracy(gameData, model):
 def setup_board(game):
     preboard, plays = sgf_moves.get_setup_and_moves(game)
     rpreboard = preboard.board
-    board = np.zeros((board_size, board_size))]
+    board = np.zeros((board_size, board_size))
     if len(plays) < 1: # Return an empty board if the game has no moves
         return board
     if plays[0][0] == "b":
