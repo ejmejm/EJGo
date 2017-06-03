@@ -14,7 +14,7 @@ n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
 batch_size = 200 # How many board states (not full games) to send to GPU at once, this is about the max with my GPU's RAM
-batch_display_stride = 40 # How many batches to send to GPU before displaying a visual update
+batch_display_stride = 200 # How many batches to send to GPU before displaying a visual update
 
 n_classes = board_size * board_size
 
@@ -91,20 +91,21 @@ def cnn_forward(data):
     return output
 
 def cnn2_forward(data):
+    weight_scale = 0.1
+
     # Weights
-    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 32])),
-    "W_conv2": tf.Variable(tf.random_normal([3, 3, 32, 32])),
-    "W_fc": tf.Variable(tf.random_normal([10*10*32, 256])),
-    "out": tf.Variable(tf.random_normal([256, n_classes]))}
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 32], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 32, 32], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([10*10*32, 256], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([256, n_classes], stddev=weight_scale))}
 
     # Biases
-    biases = {"b_conv1": tf.Variable(tf.random_normal([32])),
-    "b_conv2": tf.Variable(tf.random_normal([32])),
-    "b_fc": tf.Variable(tf.random_normal([256])),
-    "out": tf.Variable(tf.random_normal([n_classes]))}
+    biases = {"b_conv1": tf.Variable(tf.random_normal([32], stddev=weight_scale)),
+    "b_conv2": tf.Variable(tf.random_normal([32], stddev=weight_scale)),
+    "b_fc": tf.Variable(tf.random_normal([256], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([n_classes], stddev=weight_scale))}
 
     data = tf.reshape(data, shape=[-1, 19, 19, 1])
-
     # Forward prop
     conv1 = conv2d(data, weights["W_conv1"]) + biases["b_conv1"]
     conv1 = tf.nn.relu(conv1)
@@ -117,13 +118,13 @@ def cnn2_forward(data):
     conv2_drop = tf.nn.dropout(conv2, keep_prob * 1.5)
 
     fc = tf.reshape(conv2_drop, [-1, 10*10*32])
-    fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
+    fc = tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]
     fc = tf.nn.relu(fc)
 
     fc_drop = tf.nn.dropout(fc, keep_prob)
 
     output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
-    output = tf.nn.softmax(output)
+    output = tf.nn.sigmoid(output)
 
     return output
 
@@ -176,6 +177,7 @@ def switch_player_perspec(arry):
         return 0
 
 def train_neural_network(x, gameData, nnType="cnn"):
+    # Run a different model based on user input
     if nnType == "cnn":
         print("Training with a cnn")
         prediction = cnn_forward(x)
@@ -185,6 +187,7 @@ def train_neural_network(x, gameData, nnType="cnn"):
     else: # Normal neural network
         print("Training with a standard nn")
         prediction = nn_forward(x)
+
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer().minimize(cost)
     saver = tf.train.Saver()
@@ -222,7 +225,7 @@ def train_neural_network(x, gameData, nnType="cnn"):
                         # Debugging - printing and board graph
                         # print(train_boards[-1])
                         # print(train_next_moves[-1].astype(int))
-                        # plt.imshow(train_boards[-1])
+                        # plt.imshow(train_boards[-1] + train_next_moves[-1]*3)
                         # ax = plt.gca();
                         # ax.grid(color='black', linestyle='-', linewidth=1)
                         # ax.set_xticks(np.arange(0, 19, 1));

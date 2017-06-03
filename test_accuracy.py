@@ -10,7 +10,7 @@ num_games = 1000
 from_game = 100000
 
 if len(sys.argv) >= 2:
-nnType = sys.argv[1]
+    nnType = sys.argv[1]
 
 go_learn.mode = nnType
 

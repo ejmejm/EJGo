@@ -4,11 +4,12 @@ from sgfmill.sgfmill import sgf
 import go_nn as go_learn
 import board as go_board
 import global_vars_go
+import sys
 
 # The bot is 1, the player is 2, and empty is 0
 
 if len(sys.argv) >= 2:
-nnType = sys.argv[1]
+    nnType = sys.argv[1]
 
 go_learn.mode = nnType
 
