@@ -7,6 +7,7 @@ import global_vars_go
 import sys
 
 # The bot is 1, the player is 2, and empty is 0
+nnType = "cnn"
 
 if len(sys.argv) >= 2:
     nnType = sys.argv[1]

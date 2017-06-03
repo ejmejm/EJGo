@@ -13,12 +13,10 @@ n_nodes_hl1 = 300
 n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
-batch_size = 200 # How many board states (not full games) to send to GPU at once, this is about the max with my GPU's RAM
+batch_size = 128 # How many board states (not full games) to send to GPU at once, about 200 is the limit of this GPU's RAM
 batch_display_stride = 200 # How many batches to send to GPU before displaying a visual update
 
 n_classes = board_size * board_size
-
-sess = tf.Session()
 
 # IO placeholders
 x = tf.placeholder(tf.float32, [None, board_size * board_size])
@@ -36,26 +34,28 @@ def maxpool2d(x):
     return tf.nn.max_pool(padded, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
 def cnn_forward(data):
+    weight_scale = 0.1
+
     # Weights
-    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 64])),
-    "W_conv2": tf.Variable(tf.random_normal([3, 3, 64, 64])),
-    "W_conv3": tf.Variable(tf.random_normal([3, 3, 64, 128])),
-    "W_conv4": tf.Variable(tf.random_normal([3, 3, 128, 128])),
-    "W_conv5": tf.Variable(tf.random_normal([3, 3, 128, 256])),
-    "W_conv6": tf.Variable(tf.random_normal([3, 3, 256, 256])),
-    "W_fc": tf.Variable(tf.random_normal([6*6*256, 2048])),
-    "out": tf.Variable(tf.random_normal([2048, n_classes]))}
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 64], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 64, 64], stddev=weight_scale)),
+    "W_conv3": tf.Variable(tf.random_normal([3, 3, 64, 128], stddev=weight_scale)),
+    "W_conv4": tf.Variable(tf.random_normal([3, 3, 128, 128], stddev=weight_scale)),
+    "W_conv5": tf.Variable(tf.random_normal([3, 3, 128, 256], stddev=weight_scale)),
+    "W_conv6": tf.Variable(tf.random_normal([3, 3, 256, 256], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([6*6*256, 1024], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([1024, n_classes], stddev=weight_scale))}
 
     # Biases
-    biases = {"b_conv1": tf.Variable(tf.random_normal([64])),
-    "b_conv2": tf.Variable(tf.random_normal([64])),
-    "b_conv3": tf.Variable(tf.random_normal([128])),
-    "b_conv4": tf.Variable(tf.random_normal([128])),
-    "b_conv5": tf.Variable(tf.random_normal([256])),
-    "b_conv6": tf.Variable(tf.random_normal([256])),
-    "b_fc": tf.Variable(tf.random_normal([2048])),
-    "b_fc2": tf.Variable(tf.random_normal([2048])),
-    "out": tf.Variable(tf.random_normal([n_classes]))}
+    biases = {"b_conv1": tf.Variable(tf.random_normal([64], stddev=weight_scale)),
+    "b_conv2": tf.Variable(tf.random_normal([64], stddev=weight_scale)),
+    "b_conv3": tf.Variable(tf.random_normal([128], stddev=weight_scale)),
+    "b_conv4": tf.Variable(tf.random_normal([128], stddev=weight_scale)),
+    "b_conv5": tf.Variable(tf.random_normal([256], stddev=weight_scale)),
+    "b_conv6": tf.Variable(tf.random_normal([256], stddev=weight_scale)),
+    "b_fc": tf.Variable(tf.random_normal([1024], stddev=weight_scale)),
+    "b_fc2": tf.Variable(tf.random_normal([1024], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([n_classes], stddev=weight_scale))}
 
     data = tf.reshape(data, shape=[-1, 19, 19, 1])
 
@@ -68,10 +68,10 @@ def cnn_forward(data):
 
     conv3 = conv2d(conv2, weights["W_conv3"]) + biases["b_conv3"]
     conv3 = tf.nn.relu(conv3)
+    conv3 = maxpool2d(conv3)
 
     conv4 = conv2d(conv3, weights["W_conv4"]) + biases["b_conv4"]
     conv4 = tf.nn.relu(conv4)
-    conv4 = maxpool2d(conv4)
 
     conv5 = conv2d(conv4, weights["W_conv5"]) + biases["b_conv5"]
     conv5 = tf.nn.relu(conv5)
@@ -80,13 +80,16 @@ def cnn_forward(data):
     conv6 = tf.nn.relu(conv6)
     conv6 = maxpool2d(conv6)
 
-    fc = tf.reshape(conv6, [-1, 6*6*256])
+    conv6_drop = tf.nn.dropout(conv6, keep_prob)
+
+    fc = tf.reshape(conv6_drop, [-1, 6*6*256])
     fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
 
     # Dropout
     fc_drop = tf.nn.dropout(fc, keep_prob)
 
     output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
+    output = tf.nn.sigmoid(output)
 
     return output
 
@@ -156,8 +159,12 @@ def nn_forward(data):
     return output
 
 def load(save_path):
+    sess = tf.Session()
+
     if mode == "cnn":
         pred = cnn_forward(x)
+    elif mode == "cnn2":
+        pred = cnn2_forward(x)
     else:
         pred = nn_forward(x)
 
@@ -176,12 +183,78 @@ def switch_player_perspec(arry):
     else:
         return 0
 
-def train_neural_network(x, gameData, nnType="cnn"):
-    # Run a different model based on user input
-    if nnType == "cnn":
+def train_neural_network(x, gameData, model, epoch, hm_epochs):
+    test_split = 100 # How many games are reserved for testing
+    train_data = gameData[:-test_split]
+    test_data = gameData[-test_split:]
+
+    hm_batches = int(len(train_data)/batch_size)
+
+    epoch_loss = 0
+    batch_loss = 0
+    batch_index = 0
+    batch_display_index = 0
+    train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
+    train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
+    for game_index in range(len(train_data)):
+        board = setup_board(train_data[game_index])
+        for node in train_data[game_index].get_main_sequence():
+            vfunc = np.vectorize(switch_player_perspec)
+            board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+            node_move = node.get_move()
+            if node_move[1] is not None:
+                train_boards.append(np.copy(board))
+                next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
+                next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
+                train_next_moves.append(next_move)
+
+                # Debugging - printing and board graph
+                # print(train_boards[-1])
+                # print(train_next_moves[-1].astype(int))
+                # plt.imshow(train_boards[-1] + train_next_moves[-1]*3)
+                # ax = plt.gca();
+                # ax.grid(color='black', linestyle='-', linewidth=1)
+                # ax.set_xticks(np.arange(0, 19, 1));
+                # ax.set_yticks(np.arange(0, 19, 1));
+                # ax.set_xticklabels(np.arange(0, 19, 1));
+                # ax.set_yticklabels(np.arange(0, 19, 1));
+                # plt.show()
+
+                board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
+                if board is None:
+                    print("ERROR! Illegal move, {}, while training".format(node_move[1]))
+            if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
+                _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5})
+                epoch_loss += c
+                batch_loss += c
+                train_boards = []
+                train_next_moves = []
+                batch_index += 1
+                if batch_index >= batch_display_stride:
+                    batch_index = 0
+                    batch_display_index += 1
+                    print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index, batch_loss))
+                    batch_loss = 0
+
+    # Finish of what is remaining in the batch and give a visual update
+    _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
+    epoch_loss += c
+
+    model["saver"].save(sess=model["session"], save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
+    print("\nFile batch completed,", "Loss:", epoch_loss, "Accuracy:", test_accuracy(test_data, {"session": model["session"], "prediction": model["prediction"]}))
+    model["saver"].save(sess=model["session"], save_path=model["save_path"])
+
+def train(gameData, model, epoch, hm_epochs):
+    train_neural_network(x, gameData, model, epoch, hm_epochs)
+
+# Call before training to initialize the session and training variables
+def setup_model(cont_save=False):
+    session = tf.Session()
+
+    if mode == "cnn":
         print("Training with a cnn")
         prediction = cnn_forward(x)
-    elif nnType == "cnn2":
+    elif mode == "cnn2":
         print("Training with a cnn2")
         prediction = cnn2_forward(x)
     else: # Normal neural network
@@ -193,73 +266,13 @@ def train_neural_network(x, gameData, nnType="cnn"):
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
-    test_split = 100 # How many games are reserved for testing
-    train_data = gameData[:-test_split]
-    test_data = gameData[-test_split:]
+    if cont_save == False:
+        session.run(tf.global_variables_initializer())
+    else:
+        saver.restore(session, save_path)
 
-    hm_epochs = 100
-    hm_batches = int(len(train_data)/batch_size)
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-
-        for epoch in range(hm_epochs):
-            epoch_loss = 0
-            batch_loss = 0
-            batch_index = 0
-            batch_display_index = 0
-            train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-            train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-            for game_index in range(len(train_data)):
-                board = setup_board(train_data[game_index])
-                for node in train_data[game_index].get_main_sequence():
-                    vfunc = np.vectorize(switch_player_perspec)
-                    board = vfunc(board) # Changes player perspective, black becomes white and vice versa
-                    node_move = node.get_move()
-                    if node_move[1] is not None:
-                        train_boards.append(np.copy(board))
-                        next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
-                        next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
-                        train_next_moves.append(next_move)
-
-                        # Debugging - printing and board graph
-                        # print(train_boards[-1])
-                        # print(train_next_moves[-1].astype(int))
-                        # plt.imshow(train_boards[-1] + train_next_moves[-1]*3)
-                        # ax = plt.gca();
-                        # ax.grid(color='black', linestyle='-', linewidth=1)
-                        # ax.set_xticks(np.arange(0, 19, 1));
-                        # ax.set_yticks(np.arange(0, 19, 1));
-                        # ax.set_xticklabels(np.arange(0, 19, 1));
-                        # ax.set_yticklabels(np.arange(0, 19, 1));
-                        # plt.show()
-
-                        board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
-                        if board is None:
-                            print("ERROR! Illegal move, {}, while training".format(node_move[1]))
-                    if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
-                        _, c = sess.run([optimizer, cost], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
-                        epoch_loss += c
-                        batch_loss += c
-                        train_boards = []
-                        train_next_moves = []
-                        batch_index += 1
-                        if batch_index >= batch_display_stride:
-                            batch_index = 0
-                            batch_display_index += 1
-                            print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index, batch_loss))
-                            batch_loss = 0
-
-            # Finish of what is remaining in the batch and give a visual update
-            _, c = sess.run([optimizer, cost], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
-            epoch_loss += c
-
-            saver.save(sess=sess, save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-            print("\nEpoch", epoch+1, "completed out of", hm_epochs, ", Loss:", epoch_loss, "Accuracy:", test_accuracy(test_data, {"session": sess, "prediction": prediction}),"\n")
-        saver.save(sess=sess, save_path=save_path)
-
-def train(gameData, nnType):
-    train_neural_network(x, gameData, nnType)
+    # Returns the entire model
+    return {"session": session, "prediction": prediction, "cost": cost, "optimizer": optimizer, "saver": saver, "save_path": save_path}
 
 def get_prob_board(boards, model):
     boards = boards.reshape(-1, board_size * board_size)
