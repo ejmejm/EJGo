@@ -90,6 +90,43 @@ def cnn_forward(data):
 
     return output
 
+def cnn2_forward(data):
+    # Weights
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 32])),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 32, 32])),
+    "W_fc": tf.Variable(tf.random_normal([10*10*32, 256])),
+    "out": tf.Variable(tf.random_normal([256, n_classes]))}
+
+    # Biases
+    biases = {"b_conv1": tf.Variable(tf.random_normal([32])),
+    "b_conv2": tf.Variable(tf.random_normal([32])),
+    "b_fc": tf.Variable(tf.random_normal([256])),
+    "out": tf.Variable(tf.random_normal([n_classes]))}
+
+    data = tf.reshape(data, shape=[-1, 19, 19, 1])
+
+    # Forward prop
+    conv1 = conv2d(data, weights["W_conv1"]) + biases["b_conv1"]
+    conv1 = tf.nn.relu(conv1)
+
+    conv2 = conv2d(conv1, weights["W_conv2"]) + biases["b_conv2"]
+    conv2 = tf.nn.relu(conv2)
+    conv2 = maxpool2d(conv2)
+
+    # Dropout
+    conv2_drop = tf.nn.dropout(conv2, keep_prob * 1.5)
+
+    fc = tf.reshape(conv2_drop, [-1, 10*10*32])
+    fc = tf.nn.relu(tf.matmul(fc, weights["W_fc"]) + biases["b_fc"])
+    fc = tf.nn.relu(fc)
+
+    fc_drop = tf.nn.dropout(fc, keep_prob)
+
+    output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
+    output = tf.nn.softmax(output)
+
+    return output
+
 def nn_forward(data):
     hidden_1_layer = {"weights": tf.Variable(tf.random_normal([board_size * board_size, n_nodes_hl1])),
     "biases": tf.Variable(tf.random_normal([n_nodes_hl1]))}
@@ -142,6 +179,9 @@ def train_neural_network(x, gameData, nnType="cnn"):
     if nnType == "cnn":
         print("Training with a cnn")
         prediction = cnn_forward(x)
+    elif nnType == "cnn2":
+        print("Training with a cnn2")
+        prediction = cnn2_forward(x)
     else: # Normal neural network
         print("Training with a standard nn")
         prediction = nn_forward(x)

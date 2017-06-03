@@ -6,7 +6,12 @@ import board as go_board
 import global_vars_go
 
 # The bot is 1, the player is 2, and empty is 0
-go_learn.mode = "cnn"
+
+if len(sys.argv) >= 2:
+nnType = sys.argv[1]
+
+go_learn.mode = nnType
+
 board = np.zeros((go_learn.board_size, go_learn.board_size))
 model = go_learn.load("checkpoints/next_move_model.ckpt")
 

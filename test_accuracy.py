@@ -9,6 +9,11 @@ games = []
 num_games = 1000
 from_game = 100000
 
+if len(sys.argv) >= 2:
+nnType = sys.argv[1]
+
+go_learn.mode = nnType
+
 print("Loading game data...")
 
 i = 0
@@ -20,7 +25,6 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
 
 print("Done loading games")
 
-go_learn.mode = "cnn"
 model = go_learn.load("checkpoints/next_move_model.ckpt")
 
 print("Begin testing...")
