@@ -4,25 +4,19 @@ import sys
 import math
 from sgfmill.sgfmill import sgf
 import go_nn as go_learn
+import global_vars_go as gvg
 
 kifuPath = "./kifu"
 
-file_load_split = 500
-num_games = 100
-nnType = "cnn"
-if len(sys.argv) >= 2:
-    num_games = int(sys.argv[1])
-if len(sys.argv) >= 3:
-	nnType = sys.argv[2]
-
-go_learn.mode = nnType
+file_load_split = gvg.file_load_split
+num_games = gvg.num_games
 
 print("Loading game data...")
 
 load_batches = math.ceil(num_games/file_load_split)
-hm_epochs = 100
+hm_epochs = gvg.hm_epochs
 
-model = go_learn.setup_model(cont_save=True)
+model = go_learn.setup_model(cont_save=False)
 
 for epoch in range(hm_epochs):
     print("Beginning new epoch...")

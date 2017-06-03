@@ -5,16 +5,16 @@ import board as go_board
 import global_vars_go
 import matplotlib.pyplot as plt
 from sgfmill.sgfmill import sgf_moves
+import global_vars_go as gvg
 
-mode = "cnn"
 board_size = 19
 
 n_nodes_hl1 = 300
 n_nodes_hl2 = 300
 n_nodes_hl3 = 300
 
-batch_size = 128 # How many board states (not full games) to send to GPU at once, about 200 is the limit of this GPU's RAM
-batch_display_stride = 200 # How many batches to send to GPU before displaying a visual update
+batch_size = gvg.train_batch_size # How many board states (not full games) to send to GPU at once, about 200 is the limit of this GPU's RAM
+batch_display_stride = gvg.train_display_stride # How many batches to send to GPU before displaying a visual update
 
 n_classes = board_size * board_size
 
@@ -158,21 +158,22 @@ def nn_forward(data):
 
     return output
 
-def load(save_path):
-    sess = tf.Session()
-
-    if mode == "cnn":
-        pred = cnn_forward(x)
-    elif mode == "cnn2":
-        pred = cnn2_forward(x)
-    else:
-        pred = nn_forward(x)
-
-    saver = tf.train.Saver()
-
-    sess.run(tf.global_variables_initializer())
-    saver.restore(sess=sess, save_path=save_path)
-    return {"session": sess, "prediction": pred}
+# Depricated, instead use setup_model()
+# def load(save_path):
+#     sess = tf.Session()
+#
+#     if mode == "cnn":
+#         pred = cnn_forward(x)
+#     elif mode == "cnn2":
+#         pred = cnn2_forward(x)
+#     else:
+#         pred = nn_forward(x)
+#
+#     saver = tf.train.Saver()
+#
+#     sess.run(tf.global_variables_initializer())
+#     saver.restore(sess=sess, save_path=save_path)
+#     return {"session": sess, "prediction": pred}
 
 # Changes the player turn by changing 1s to 2s and vice versa
 def switch_player_perspec(arry):
@@ -184,9 +185,9 @@ def switch_player_perspec(arry):
         return 0
 
 def train_neural_network(x, gameData, model, epoch, hm_epochs):
-    test_split = 100 # How many games are reserved for testing
-    train_data = gameData[:-test_split]
-    test_data = gameData[-test_split:]
+    validation_split = gvg.validation_split # What fraction of games are reserved for validation
+    train_data = gameData[:-int(validation_split*len(gameData))]
+    validation_data = gameData[-int(validation_split*len(gameData)):]
 
     hm_batches = int(len(train_data)/batch_size)
 
@@ -194,8 +195,8 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
     batch_loss = 0
     batch_index = 0
     batch_display_index = 0
-    train_boards = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
-    train_next_moves = []#np.zeros(batch_size * board_size * board_size).reshape(batch_size, board_size * board_size)
+    train_boards = []
+    train_next_moves = []
     for game_index in range(len(train_data)):
         board = setup_board(train_data[game_index])
         for node in train_data[game_index].get_main_sequence():
@@ -241,7 +242,7 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
     epoch_loss += c
 
     model["saver"].save(sess=model["session"], save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
-    print("\nFile batch completed,", "Loss:", epoch_loss, "Accuracy:", test_accuracy(test_data, {"session": model["session"], "prediction": model["prediction"]}))
+    print("\nFile batch completed,", "Loss:", epoch_loss, "Accuracy:", test_accuracy(validation_data, model))
     model["saver"].save(sess=model["session"], save_path=model["save_path"])
 
 def train(gameData, model, epoch, hm_epochs):
@@ -251,14 +252,14 @@ def train(gameData, model, epoch, hm_epochs):
 def setup_model(cont_save=False):
     session = tf.Session()
 
-    if mode == "cnn":
-        print("Training with a cnn")
+    if gvg.nn_type == "cnn":
+        print("\nTraining with a cnn\n")
         prediction = cnn_forward(x)
-    elif mode == "cnn2":
-        print("Training with a cnn2")
+    elif gvg.nn_type == "cnn2":
+        print("\nTraining with a cnn2\n")
         prediction = cnn2_forward(x)
-    else: # Normal neural network
-        print("Training with a standard nn")
+    else:
+        print("\nTraining with a standard nn\n")
         prediction = nn_forward(x)
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
