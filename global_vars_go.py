@@ -11,6 +11,7 @@ file_load_split = 30000 # Number of games to load from disk to RAM at once
 nn_type = "cnn2" # Which model to use for training and testing
 validation_split = 0.03 # What fraction of games are reserved for validation
 from_test_games = 100000 # How many games are reserved for training/where testing starts
+learning_rate = 0.002 # Learning rate for training
 
 if len(sys.argv) >= 2:
     num_games = int(sys.argv[1])
