@@ -36,13 +36,22 @@ def conv2dp2(x, W):
     padded = tf.pad(x, [[0, 0], [2, 2], [2, 2], [0, 0]], "CONSTANT")
     return tf.nn.conv2d(padded, W, strides=[1, 1, 1, 1], padding="VALID")
 
+def conv3d(x, W):
+    return tf.nn.conv3d(x, W, strides=[1, 1, 1, 1, 1], padding="SAME")
+
 def conv2dp3(x, W):
     padded = tf.pad(x, [[0, 0], [3, 3], [3, 3], [0, 0]], "CONSTANT")
     return tf.nn.conv2d(padded, W, strides=[1, 1, 1, 1], padding="VALID")
 
 def maxpool2d(x):
+    return tf.nn.max_pool(padded, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
+
+def maxpool2dp1(x):
     padded = tf.pad(x, [[0, 0], [1, 1], [1, 1], [0, 0]], "CONSTANT")
     return tf.nn.max_pool(padded, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
+
+def maxpool3d(x):
+    return tf.nn.max_pool3d(x, ksize=[1, 2, 2, 2, 1], strides=[1, 2, 2, 2, 1], padding="SAME")
 
 def cnn_forward(data):
     weight_scale = 0.1
@@ -157,7 +166,7 @@ def cnn2_forward(data):
     return output
 
 def cnn3_forward(data):
-    weight_scale = 0.1
+    weight_scale = 0.01
 
     # Weights
     weights = {"W_conv1": tf.Variable(tf.random_normal([7, 7, 1, 64], stddev=weight_scale)),
@@ -167,7 +176,7 @@ def cnn3_forward(data):
     "W_conv5": tf.Variable(tf.random_normal([5, 5, 48, 48], stddev=weight_scale)),
     "W_conv6": tf.Variable(tf.random_normal([5, 5, 48, 32], stddev=weight_scale)),
     "W_conv7": tf.Variable(tf.random_normal([5, 5, 32, 32], stddev=weight_scale)),
-    "W_fc": tf.Variable(tf.random_normal([9*9*32, 1024], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([19*19*32, 1024], stddev=weight_scale)),
     "out": tf.Variable(tf.random_normal([1024, n_classes], stddev=weight_scale))}
 
     # Biases
@@ -189,24 +198,62 @@ def cnn3_forward(data):
     conv2 = conv2d(conv1, weights["W_conv2"]) + biases["b_conv2"]
     conv2 = tf.nn.relu(conv2)
 
-    conv3 = conv2dp1(conv2, weights["W_conv3"]) + biases["b_conv3"]
+    conv3 = conv2d(conv2, weights["W_conv3"]) + biases["b_conv3"]
     conv3 = tf.nn.relu(conv3)
 
-    conv4 = conv2dp1(conv3, weights["W_conv4"]) + biases["b_conv4"]
+    conv4 = conv2d(conv3, weights["W_conv4"]) + biases["b_conv4"]
     conv4 = tf.nn.relu(conv4)
 
-    conv5 = conv2dp1(conv4, weights["W_conv5"]) + biases["b_conv5"]
+    conv5 = conv2d(conv4, weights["W_conv5"]) + biases["b_conv5"]
     conv5 = tf.nn.relu(conv5)
 
-    conv6 = conv2dp1(conv5, weights["W_conv6"]) + biases["b_conv6"]
+    conv6 = conv2d(conv5, weights["W_conv6"]) + biases["b_conv6"]
     conv6 = tf.nn.relu(conv6)
 
-    conv7 = conv2dp1(conv6, weights["W_conv7"]) + biases["b_conv7"]
+    conv7 = conv2d(conv6, weights["W_conv7"]) + biases["b_conv7"]
     conv7 = tf.nn.relu(conv7)
 
     conv7_drop = tf.nn.dropout(conv7, keep_prob)
 
-    fc = tf.reshape(conv7_drop, [-1, 9*9*32])
+    fc = tf.reshape(conv7_drop, [-1, 19*19*32])
+    fc = tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]
+    fc = tf.nn.relu(fc)
+
+    fc_drop = tf.nn.dropout(fc, keep_prob)
+
+    output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
+    output = tf.nn.sigmoid(output)
+
+    return output
+
+def cnn3d_forward(data):
+    weight_scale = 0.1
+
+    # Weights
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 2, 1, 32], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 2, 32, 32], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([10*10*2*32, 256], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([256, n_classes], stddev=weight_scale))}
+
+    # Biases
+    biases = {"b_conv1": tf.Variable(tf.zeros([32])),
+    "b_conv2": tf.Variable(tf.zeros([32])),
+    "b_fc": tf.Variable(tf.zeros([256])),
+    "out": tf.Variable(tf.zeros([n_classes]))}
+
+    data = tf.reshape(data, shape=[-1, 19, 19, 2, 1])
+    # Forward prop
+    conv1 = conv3d(data, weights["W_conv1"]) + biases["b_conv1"]
+    conv1 = tf.nn.relu(conv1)
+
+    conv2 = conv3d(conv1, weights["W_conv2"]) + biases["b_conv2"]
+    conv2 = tf.nn.relu(conv2)
+    conv2 = maxpool3d(conv2)
+
+    # Dropout
+    conv2_drop = tf.nn.dropout(conv2, keep_prob * 1.5)
+
+    fc = tf.reshape(conv2_drop, [-1, 10*10*2*32])
     fc = tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]
     fc = tf.nn.relu(fc)
 
@@ -290,7 +337,15 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
             board = vfunc(board) # Changes player perspective, black becomes white and vice versa
             node_move = node.get_move()
             if node_move[1] is not None:
-                train_boards.append(np.copy(board))
+                board3d = np.zeros((board_size, board_size, 2))
+                print("------------INPUT SHAPE:", board.shape)
+                for i in range(len(board)):
+                    for j in range(len(board[i])):
+                        if board[i][j] == gvg.bot_in:
+                            board3d[i][j][0] = 1
+                        elif x[i][j] == gvg.player_in:
+                            board3d[i][j][1] = 1
+                train_boards.append(np.copy(board3d))
                 next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
                 next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
                 train_next_moves.append(next_move)
@@ -347,6 +402,9 @@ def setup_model(cont_save=False):
     elif gvg.nn_type == "cnn3":
         print("\nTraining with a cnn3\n")
         prediction = cnn3_forward(x)
+    elif gvg.nn_type == "cnn3d":
+        print("\nTraining with a cnn3d\n")
+        prediction = cnn3d_forward(x)
     else:
         print("\nTraining with a standard nn\n")
         prediction = nn_forward(x)
