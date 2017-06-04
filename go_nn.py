@@ -1,8 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import time
-import board as go_board
-import global_vars_go
+import board3d as go_board
 import matplotlib.pyplot as plt
 from sgfmill.sgfmill import sgf_moves
 import global_vars_go as gvg
@@ -16,10 +15,10 @@ n_nodes_hl3 = 300
 batch_size = gvg.train_batch_size # How many board states (not full games) to send to GPU at once, about 200 is the limit of this GPU's RAM
 batch_display_stride = gvg.train_display_stride # How many batches to send to GPU before displaying a visual update
 
-n_classes = board_size * board_size
+n_classes = gvg.board_size * gvg.board_size
 
 # IO placeholders
-x = tf.placeholder(tf.float32, [None, board_size * board_size])
+x = tf.placeholder(tf.float32, [None, gvg.board_size * gvg.board_size * gvg.board_channels])
 y = tf.placeholder(tf.float32, [None, board_size * board_size])
 
 # Dropout placeholder
@@ -230,9 +229,9 @@ def cnn3d_forward(data):
     weight_scale = 0.1
 
     # Weights
-    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 2, 1, 32], stddev=weight_scale)),
-    "W_conv2": tf.Variable(tf.random_normal([3, 3, 2, 32, 32], stddev=weight_scale)),
-    "W_fc": tf.Variable(tf.random_normal([10*10*2*32, 256], stddev=weight_scale)),
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, gvg.board_channels, 1, 32], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, gvg.board_channels, 32, 32], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([10*10*32, 256], stddev=weight_scale)),
     "out": tf.Variable(tf.random_normal([256, n_classes], stddev=weight_scale))}
 
     # Biases
@@ -241,7 +240,7 @@ def cnn3d_forward(data):
     "b_fc": tf.Variable(tf.zeros([256])),
     "out": tf.Variable(tf.zeros([n_classes]))}
 
-    data = tf.reshape(data, shape=[-1, 19, 19, 2, 1])
+    data = tf.reshape(data, shape=[-1, gvg.board_size, gvg.board_size, gvg.board_channels, 1])
     # Forward prop
     conv1 = conv3d(data, weights["W_conv1"]) + biases["b_conv1"]
     conv1 = tf.nn.relu(conv1)
@@ -253,7 +252,7 @@ def cnn3d_forward(data):
     # Dropout
     conv2_drop = tf.nn.dropout(conv2, keep_prob * 1.5)
 
-    fc = tf.reshape(conv2_drop, [-1, 10*10*2*32])
+    fc = tf.reshape(conv2_drop, [-1, 10*10*32])
     fc = tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]
     fc = tf.nn.relu(fc)
 
@@ -308,14 +307,15 @@ def nn_forward(data):
 #     saver.restore(sess=sess, save_path=save_path)
 #     return {"session": sess, "prediction": pred}
 
-# Changes the player turn by changing 1s to 2s and vice versa
+# Changes the player turn by switching the channels
 def switch_player_perspec(arry):
-    if arry == global_vars_go.bot_in:
-        return global_vars_go.player_in
-    elif arry == global_vars_go.player_in:
-        return global_vars_go.bot_in
-    else:
-        return 0
+    arry = arry.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+    for i in range(len(arry)):
+        for j in range(len(arry[i])):
+            tmp = arry[i][j][gvg.player_channel]
+            arry[i][j][gvg.player_channel] = arry[i][j][gvg.bot_channel]
+            arry[i][j][gvg.bot_channel] = tmp
+    return arry
 
 def train_neural_network(x, gameData, model, epoch, hm_epochs):
     validation_split = gvg.validation_split # What fraction of games are reserved for validation
@@ -333,21 +333,12 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
     for game_index in range(len(train_data)):
         board = setup_board(train_data[game_index])
         for node in train_data[game_index].get_main_sequence():
-            vfunc = np.vectorize(switch_player_perspec)
-            board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+            board = switch_player_perspec(board) # Changes player perspective, black becomes white and vice versa
             node_move = node.get_move()
             if node_move[1] is not None:
-                board3d = np.zeros((board_size, board_size, 2))
-                print("------------INPUT SHAPE:", board.shape)
-                for i in range(len(board)):
-                    for j in range(len(board[i])):
-                        if board[i][j] == gvg.bot_in:
-                            board3d[i][j][0] = 1
-                        elif x[i][j] == gvg.player_in:
-                            board3d[i][j][1] = 1
-                train_boards.append(np.copy(board3d))
+                train_boards.append(np.copy(board))
                 next_move = np.zeros(board_size * board_size).reshape(board_size, board_size)
-                next_move[node_move[1][0], node_move[1][1]] = global_vars_go.bot_in # y = an array in the form [board_x_position, board_y_position]
+                next_move[node_move[1][0], node_move[1][1]] = gvg.filled # y = an array in the form [board_x_position, board_y_position]
                 train_next_moves.append(next_move)
 
                 # Debugging - printing and board graph
@@ -362,11 +353,11 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
                 # ax.set_yticklabels(np.arange(0, 19, 1));
                 # plt.show()
 
-                board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
+                board = go_board.make_move(board, node_move[1], gvg.bot_channel, gvg.player_channel) # Update board with new move
                 if board is None:
                     print("ERROR! Illegal move, {}, while training".format(node_move[1]))
             if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
-                _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5})
+                _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels), y: np.array(train_next_moves).reshape(-1, gvg.board_size * gvg.board_size), keep_prob: 0.5})
                 epoch_loss += c
                 batch_loss += c
                 train_boards = []
@@ -379,7 +370,7 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
                     batch_loss = 0
 
     # Finish of what is remaining in the batch and give a visual update
-    _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size), y: np.array(train_next_moves).reshape(-1, board_size * board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
+    _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size).reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels), y: np.array(train_next_moves).reshape(-1, gvg.board_size * gvg.board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
     epoch_loss += c
 
     model["saver"].save(sess=model["session"], save_path=("checkpoints/nm_epoch_" + str(epoch+1) + ".ckpt"))
@@ -423,7 +414,7 @@ def setup_model(cont_save=False):
     return {"session": session, "prediction": prediction, "cost": cost, "optimizer": optimizer, "saver": saver, "save_path": save_path}
 
 def get_prob_board(boards, model):
-    boards = boards.reshape(-1, board_size * board_size)
+    boards = boards.reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels)
     move = model["session"].run(model["prediction"], feed_dict = {x: boards, keep_prob: 1.0})
     return move
 
@@ -438,7 +429,7 @@ def predict_move(board, model, level=0):
         if i >= len(c_board):
             move_found = True
             return(-1)
-        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), global_vars_go.bot_in, global_vars_go.player_in, debug=False) is not None:
+        if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), gvg.bot_channel, gvg.player_channel, debug=False) is not None:
             c_board[int(sorted_board[i][0])] = 1
             move_found = True
             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
@@ -452,13 +443,12 @@ def test_accuracy(gameData, model):
     for game_index in range(len(gameData)): # Relative index of game to batch
         board = setup_board(gameData[game_index])
         for node in gameData[game_index].get_main_sequence():
-            vfunc = np.vectorize(switch_player_perspec)
-            board = vfunc(board) # Changes player perspective, black becomes white and vice versa
+            board = switch_player_perspec(board) # Changes player perspective, black becomes white and vice versa
             node_move = node.get_move()
             if node_move[1] is not None:
                 train_boards.append(np.copy(board))
                 train_actual_moves.append([node_move[1][0], node_move[1][1]])
-                board = go_board.make_move(board, node_move[1], global_vars_go.bot_in, global_vars_go.player_in) # Update board with new move
+                board = go_board.make_move(board, node_move[1], gvg.bot_channel, gvg.player_channel) # Update board with new move
                 if board is None:
                     print("ERROR! Illegal move, {}, while training".format(node_move[1]))
             if len(train_actual_moves) >= batch_size: # Send chunk to GPU at batch limit
@@ -484,16 +474,16 @@ def test_accuracy(gameData, model):
 def setup_board(game):
     preboard, plays = sgf_moves.get_setup_and_moves(game)
     rpreboard = preboard.board
-    board = np.zeros((board_size, board_size))
+    board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))
     if len(plays) < 1: # Return an empty board if the game has no moves
         return board
     if plays[0][0] == "b":
-        color_stone = global_vars_go.bot_in
+        color_stone = gvg.bot_channel
     else:
-        color_stone = global_vars_go.player_in
+        color_stone = gvg.player_channel
     for i in range(len(rpreboard)):
         for j in range(len(rpreboard[i])):
             if rpreboard[i][j] == "b":
-                board[i][j] = color_stone
+                board[i][j][color_stone] = gvg.filled
 
     return board.astype(int)
