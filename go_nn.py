@@ -226,23 +226,21 @@ def cnn3_forward(data):
 
     return output
 def cnn4_forward(data):
-    weight_scale = 0.1
+    weight_scale = 0.02
 
     # Weights
-    weights = {"W_conv1": tf.Variable(tf.random_normal([7, 7, 2, 1, 48], stddev=weight_scale)),
-    "W_conv2": tf.Variable(tf.random_normal([5, 5, 2, 48, 32], stddev=weight_scale)),
-    "W_conv3": tf.Variable(tf.random_normal([5, 5, 2, 32, 32], stddev=weight_scale)),
-    "W_conv4": tf.Variable(tf.random_normal([5, 5, 2, 32, 32], stddev=weight_scale)),
-    "W_fc": tf.Variable(tf.random_normal([gvg.board_size*gvg.board_size*gvg.board_channels*32, 1024], stddev=weight_scale)),
-    "out": tf.Variable(tf.random_normal([1024, n_classes], stddev=weight_scale))}
+    weights = {"W_conv1": tf.Variable(tf.random_normal([3, 3, 1, 1, 32], stddev=weight_scale), name="wc1"),
+    "W_conv2": tf.Variable(tf.random_normal([3, 3, 1, 32, 64], stddev=weight_scale), name="wc2"),
+    "W_fc": tf.Variable(tf.random_normal([19*19*2*64, 128], stddev=weight_scale), name="wfc1"),
+    "W_fc2": tf.Variable(tf.random_normal([128, 256], stddev=weight_scale), name="wfc2"),
+    "out": tf.Variable(tf.random_normal([256, n_classes], stddev=weight_scale), name="wout")}
 
     # Biases
-    biases = {"b_conv1": tf.Variable(tf.zeros([48])),
-    "b_conv2": tf.Variable(tf.zeros([32])),
-    "b_conv3": tf.Variable(tf.zeros([32])),
-    "b_conv4": tf.Variable(tf.zeros([32])),
-    "b_fc": tf.Variable(tf.zeros([1024])),
-    "out": tf.Variable(tf.zeros([n_classes]))}
+    biases = {"b_conv1": tf.Variable(tf.zeros([32]), name="bc1"),
+    "b_conv2": tf.Variable(tf.zeros([64]), name="bc2"),
+    "b_fc": tf.Variable(tf.zeros([128]), name="bfc1"),
+    "b_fc2": tf.Variable(tf.zeros([256]), name="bfc2"),
+    "out": tf.Variable(tf.zeros([n_classes]), name="bout")}
 
     data = tf.reshape(data, shape=[-1, gvg.board_size, gvg.board_size, gvg.board_channels, 1])
     # Forward prop
@@ -252,22 +250,19 @@ def cnn4_forward(data):
     conv2 = tf.add(conv3d(conv1, weights["W_conv2"]), biases["b_conv2"])
     conv2 = tf.nn.relu(conv2)
 
-    conv3 = tf.add(conv3d(conv2, weights["W_conv3"]), biases["b_conv3"])
-    conv3 = tf.nn.relu(conv3)
-
-    conv4 = tf.add(conv3d(conv3, weights["W_conv4"]), biases["b_conv4"])
-    conv4 = tf.nn.relu(conv4)
-
-    conv4_drop = tf.nn.dropout(conv4, keep_prob)
-
-    fc = tf.reshape(conv4_drop, [-1, gvg.board_size*gvg.board_size*gvg.board_channels*32])
+    fc = tf.reshape(conv2, [-1, 19*19*2*64])
 
     fc = tf.add(tf.matmul(fc, weights["W_fc"]), biases["b_fc"])
-    fc = tf.nn.relu(fc)
+    fc = tf.nn.tanh(fc)
 
-    fc_drop = tf.nn.dropout(fc, keep_prob)
+    fc_drop = tf.nn.dropout(fc, keep_prob * 1.5)
 
-    output = tf.add(tf.matmul(fc_drop, weights["out"]), biases["out"])
+    fc2 = tf.add(tf.matmul(fc_drop, weights["W_fc2"]), biases["b_fc2"])
+    fc2 = tf.nn.tanh(fc2)
+
+    fc2_drop = tf.nn.dropout(fc2, keep_prob)
+
+    output = tf.add(tf.matmul(fc2_drop, weights["out"]), biases["out"])
 
     return output
 
@@ -453,7 +448,13 @@ def setup_model(cont_save=False):
         print("\nTraining with a standard nn\n")
         prediction = nn_forward(x)
 
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
+    lossL2 = 0
+    for tvar in tf.trainable_variables():
+        if "wc" in tvar.name:
+            lossL2 += tf.nn.l2_loss(tvar)
+    lossL2 *= 0.01
+
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y)) + lossL2
     optimizer = tf.train.AdamOptimizer(learning_rate=gvg.learning_rate).minimize(cost)
 
     correct_pred = tf.equal(tf.argmax(tf.nn.softmax(prediction), 1), tf.argmax(y, 1))
