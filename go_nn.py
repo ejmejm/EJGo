@@ -168,14 +168,14 @@ def cnn3_forward(data):
     weight_scale = 0.01
 
     # Weights
-    weights = {"W_conv1": tf.Variable(tf.random_normal([7, 7, 1, 64], stddev=weight_scale)),
-    "W_conv2": tf.Variable(tf.random_normal([5, 5, 64, 64], stddev=weight_scale)),
-    "W_conv3": tf.Variable(tf.random_normal([5, 5, 64, 64], stddev=weight_scale)),
-    "W_conv4": tf.Variable(tf.random_normal([5, 5, 64, 48], stddev=weight_scale)),
-    "W_conv5": tf.Variable(tf.random_normal([5, 5, 48, 48], stddev=weight_scale)),
-    "W_conv6": tf.Variable(tf.random_normal([5, 5, 48, 32], stddev=weight_scale)),
-    "W_conv7": tf.Variable(tf.random_normal([5, 5, 32, 32], stddev=weight_scale)),
-    "W_fc": tf.Variable(tf.random_normal([19*19*32, 1024], stddev=weight_scale)),
+    weights = {"W_conv1": tf.Variable(tf.random_normal([7, 7, 2, 1, 64], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([5, 5, 2, 64, 64], stddev=weight_scale)),
+    "W_conv3": tf.Variable(tf.random_normal([5, 5, 2, 64, 64], stddev=weight_scale)),
+    "W_conv4": tf.Variable(tf.random_normal([5, 5, 2, 64, 48], stddev=weight_scale)),
+    "W_conv5": tf.Variable(tf.random_normal([5, 5, 2, 48, 48], stddev=weight_scale)),
+    "W_conv6": tf.Variable(tf.random_normal([5, 5, 2, 48, 32], stddev=weight_scale)),
+    "W_conv7": tf.Variable(tf.random_normal([5, 5, 2, 32, 32], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([gvg.board_size*gvg.board_size*gvg.board_channels*32, 1024], stddev=weight_scale)),
     "out": tf.Variable(tf.random_normal([1024, n_classes], stddev=weight_scale))}
 
     # Biases
@@ -189,32 +189,33 @@ def cnn3_forward(data):
     "b_fc": tf.Variable(tf.zeros([1024])),
     "out": tf.Variable(tf.zeros([n_classes]))}
 
-    data = tf.reshape(data, shape=[-1, 19, 19, 1])
+    data = tf.reshape(data, shape=[-1, gvg.board_size, gvg.board_size, gvg.board_channels, 1])
     # Forward prop
-    conv1 = conv2d(data, weights["W_conv1"]) + biases["b_conv1"]
+    conv1 = conv3d(data, weights["W_conv1"]) + biases["b_conv1"]
     conv1 = tf.nn.relu(conv1)
 
-    conv2 = conv2d(conv1, weights["W_conv2"]) + biases["b_conv2"]
+    conv2 = conv3d(conv1, weights["W_conv2"]) + biases["b_conv2"]
     conv2 = tf.nn.relu(conv2)
 
-    conv3 = conv2d(conv2, weights["W_conv3"]) + biases["b_conv3"]
+    conv3 = conv3d(conv2, weights["W_conv3"]) + biases["b_conv3"]
     conv3 = tf.nn.relu(conv3)
 
-    conv4 = conv2d(conv3, weights["W_conv4"]) + biases["b_conv4"]
+    conv4 = conv3d(conv3, weights["W_conv4"]) + biases["b_conv4"]
     conv4 = tf.nn.relu(conv4)
 
-    conv5 = conv2d(conv4, weights["W_conv5"]) + biases["b_conv5"]
+    conv5 = conv3d(conv4, weights["W_conv5"]) + biases["b_conv5"]
     conv5 = tf.nn.relu(conv5)
 
-    conv6 = conv2d(conv5, weights["W_conv6"]) + biases["b_conv6"]
+    conv6 = conv3d(conv5, weights["W_conv6"]) + biases["b_conv6"]
     conv6 = tf.nn.relu(conv6)
 
-    conv7 = conv2d(conv6, weights["W_conv7"]) + biases["b_conv7"]
+    conv7 = conv3d(conv6, weights["W_conv7"]) + biases["b_conv7"]
     conv7 = tf.nn.relu(conv7)
 
     conv7_drop = tf.nn.dropout(conv7, keep_prob)
 
-    fc = tf.reshape(conv7_drop, [-1, 19*19*32])
+    fc = tf.reshape(conv7_drop, [-1, gvg.board_size*gvg.board_size*gvg.board_channels*32])
+
     fc = tf.matmul(fc, weights["W_fc"]) + biases["b_fc"]
     fc = tf.nn.relu(fc)
 
@@ -222,6 +223,51 @@ def cnn3_forward(data):
 
     output = tf.matmul(fc_drop, weights["out"]) + biases["out"]
     output = tf.nn.sigmoid(output)
+
+    return output
+def cnn4_forward(data):
+    weight_scale = 0.1
+
+    # Weights
+    weights = {"W_conv1": tf.Variable(tf.random_normal([7, 7, 2, 1, 48], stddev=weight_scale)),
+    "W_conv2": tf.Variable(tf.random_normal([5, 5, 2, 48, 32], stddev=weight_scale)),
+    "W_conv3": tf.Variable(tf.random_normal([5, 5, 2, 32, 32], stddev=weight_scale)),
+    "W_conv4": tf.Variable(tf.random_normal([5, 5, 2, 32, 32], stddev=weight_scale)),
+    "W_fc": tf.Variable(tf.random_normal([gvg.board_size*gvg.board_size*gvg.board_channels*32, 1024], stddev=weight_scale)),
+    "out": tf.Variable(tf.random_normal([1024, n_classes], stddev=weight_scale))}
+
+    # Biases
+    biases = {"b_conv1": tf.Variable(tf.zeros([48])),
+    "b_conv2": tf.Variable(tf.zeros([32])),
+    "b_conv3": tf.Variable(tf.zeros([32])),
+    "b_conv4": tf.Variable(tf.zeros([32])),
+    "b_fc": tf.Variable(tf.zeros([1024])),
+    "out": tf.Variable(tf.zeros([n_classes]))}
+
+    data = tf.reshape(data, shape=[-1, gvg.board_size, gvg.board_size, gvg.board_channels, 1])
+    # Forward prop
+    conv1 = tf.add(conv3d(data, weights["W_conv1"]), biases["b_conv1"])
+    conv1 = tf.nn.relu(conv1)
+
+    conv2 = tf.add(conv3d(conv1, weights["W_conv2"]), biases["b_conv2"])
+    conv2 = tf.nn.relu(conv2)
+
+    conv3 = tf.add(conv3d(conv2, weights["W_conv3"]), biases["b_conv3"])
+    conv3 = tf.nn.relu(conv3)
+
+    conv4 = tf.add(conv3d(conv3, weights["W_conv4"]), biases["b_conv4"])
+    conv4 = tf.nn.relu(conv4)
+
+    conv4_drop = tf.nn.dropout(conv4, keep_prob)
+
+    fc = tf.reshape(conv4_drop, [-1, gvg.board_size*gvg.board_size*gvg.board_channels*32])
+
+    fc = tf.add(tf.matmul(fc, weights["W_fc"]), biases["b_fc"])
+    fc = tf.nn.relu(fc)
+
+    fc_drop = tf.nn.dropout(fc, keep_prob)
+
+    output = tf.add(tf.matmul(fc_drop, weights["out"]), biases["out"])
 
     return output
 
@@ -324,6 +370,7 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
 
     hm_batches = int(len(train_data)/batch_size)
 
+    batch_acc = 0
     epoch_loss = 0
     batch_loss = 0
     batch_index = 0
@@ -357,17 +404,20 @@ def train_neural_network(x, gameData, model, epoch, hm_epochs):
                 if board is None:
                     print("ERROR! Illegal move, {}, while training".format(node_move[1]))
             if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
-                _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels), y: np.array(train_next_moves).reshape(-1, gvg.board_size * gvg.board_size), keep_prob: 0.5})
+                _, c, a = model["session"].run([model["optimizer"], model["cost"], model["accuracy"]], feed_dict = {x: np.array(train_boards).reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels), y: np.array(train_next_moves).reshape(-1, gvg.board_size * gvg.board_size), keep_prob: 0.5})
                 epoch_loss += c
                 batch_loss += c
+                batch_acc += a
                 train_boards = []
                 train_next_moves = []
                 batch_index += 1
                 if batch_index >= batch_display_stride:
                     batch_index = 0
                     batch_display_index += 1
-                    print("Epoch {}, Batch {} completed, Loss: {}".format(epoch+1, batch_display_index, batch_loss))
+                    batch_acc /= batch_display_stride
+                    print("Epoch {}, Batch {} completed, Loss: {}, Accuracy: {}".format(epoch+1, batch_display_index, batch_loss, batch_acc))
                     batch_loss = 0
+                    batch_acc = 0
 
     # Finish of what is remaining in the batch and give a visual update
     _, c = model["session"].run([model["optimizer"], model["cost"]], feed_dict = {x: np.array(train_boards).reshape(-1, board_size * board_size).reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels), y: np.array(train_next_moves).reshape(-1, gvg.board_size * gvg.board_size), keep_prob: 0.5}) # TODO: Make sure array keeps shape
@@ -393,6 +443,9 @@ def setup_model(cont_save=False):
     elif gvg.nn_type == "cnn3":
         print("\nTraining with a cnn3\n")
         prediction = cnn3_forward(x)
+    elif gvg.nn_type == "cnn4":
+        print("\nTraining with a cnn4\n")
+        prediction = cnn4_forward(x)
     elif gvg.nn_type == "cnn3d":
         print("\nTraining with a cnn3d\n")
         prediction = cnn3d_forward(x)
@@ -402,6 +455,10 @@ def setup_model(cont_save=False):
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = prediction, labels = y))
     optimizer = tf.train.AdamOptimizer(learning_rate=gvg.learning_rate).minimize(cost)
+
+    correct_pred = tf.equal(tf.argmax(tf.nn.softmax(prediction), 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+
     saver = tf.train.Saver()
     save_path = "checkpoints/next_move_model.ckpt"
 
@@ -411,7 +468,7 @@ def setup_model(cont_save=False):
         saver.restore(session, save_path)
 
     # Returns the entire model
-    return {"session": session, "prediction": prediction, "cost": cost, "optimizer": optimizer, "saver": saver, "save_path": save_path}
+    return {"session": session, "prediction": prediction, "cost": cost, "optimizer": optimizer, "saver": saver, "save_path": save_path, "accuracy": accuracy, "asd": tf.nn.softmax(prediction)}
 
 def get_prob_board(boards, model):
     boards = boards.reshape(-1, gvg.board_size * gvg.board_size * gvg.board_channels)

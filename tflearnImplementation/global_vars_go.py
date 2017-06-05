@@ -19,9 +19,4 @@ board_channels = 2 # 3rd dimmension of the board
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces
 bot_in = 1 # Board integer for spaces occupied by the bot
-player_in = 2 # Board integer for spaces occupied by the player
-
-if len(sys.argv) >= 2:
-    num_games = int(sys.argv[1])
-if len(sys.argv) >= 3:
-	nn_type = sys.argv[2]
+player_in = -1 # Board integer for spaces occupied by the player
