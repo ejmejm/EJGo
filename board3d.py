@@ -1,6 +1,7 @@
 import numpy as np
 import queue
 import global_vars_go as gvg
+from sgfmill.sgfmill import sgf_moves
 
 empty = gvg.empty
 filled = gvg.filled
@@ -115,3 +116,29 @@ def remove_stones(board, position):
             board_check[c_move[0]][c_move[1]-1] = True
         board[c_move[0]][c_move[1]][player] = empty
     return board
+
+def switch_player_perspec(board):
+    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+    for i in range(len(board)):
+        for j in range(len(board[i])):
+            tmp = board[i][j][gvg.player_channel]
+            board[i][j][gvg.player_channel] = board[i][j][gvg.bot_channel]
+            board[i][j][gvg.bot_channel] = tmp
+    return board
+
+def setup_board(game):
+    preboard, plays = sgf_moves.get_setup_and_moves(game)
+    rpreboard = preboard.board
+    board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))
+    if len(plays) < 1: # Return an empty board if the game has no moves
+        return board
+    if plays[0][0] == "b":
+        color_stone = gvg.bot_channel
+    else:
+        color_stone = gvg.player_channel
+    for i in range(len(rpreboard)):
+        for j in range(len(rpreboard[i])):
+            if rpreboard[i][j] == "b":
+                board[i][j][color_stone] = gvg.filled
+
+    return board.astype(int)

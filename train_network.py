@@ -5,6 +5,7 @@ import math
 from sgfmill.sgfmill import sgf
 import go_nn as go_learn
 import global_vars_go as gvg
+import loader
 
 kifuPath = "./kifu"
 
@@ -15,8 +16,7 @@ print("Loading game data...")
 
 load_batches = math.ceil(num_games/file_load_split)
 hm_epochs = gvg.hm_epochs
-
-model = go_learn.setup_model(cont_save=False)
+model = loader.load_model(gvg.nn_type)
 
 for epoch in range(hm_epochs):
     print("Beginning new epoch...")
@@ -31,10 +31,9 @@ for epoch in range(hm_epochs):
 
         print("Done loading file bach of", len(games), "games")
 
-        go_learn.train(games, model, epoch, hm_epochs)
+        go_learn.train_network(games, model)
         print("\nFile batch", lb+1, "completed out of", load_batches, "\n")
     print("Epoch {} completed of {} epochs\n".format(epoch+1, hm_epochs))
 
-go_learn.sess.close()
 
 print("Finished training")
