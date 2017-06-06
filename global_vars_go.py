@@ -5,7 +5,7 @@ filled = 1 # Board integer for filled spaces
 bot_channel = 0 # Board channel used for bot moves
 player_channel = 1 # Board channel used for bot moves
 num_games = 1000 # Number of games to train and test accuracy on
-hm_epochs = 2 # Number of loops through all training data
+hm_epochs = 7 # Number of loops through all training data
 process_batch_size = 128 * 500 # Number of games to process into board states before fitting
 train_batch_size = 128 # Number of board states to send to the GPU at once
 train_display_stride = 30 # Number of batches before giving a visual update
@@ -16,6 +16,7 @@ from_test_games = 100000 # How many games are reserved for training/where testin
 learning_rate = 0.001 # Learning rate for training
 board_size = 19 # Side length of the Go board
 board_channels = 2 # 3rd dimmension of the board
+checkpoint_path = "checkpoints/" # Where model checkpoints are stored
 
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces

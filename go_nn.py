@@ -32,10 +32,10 @@ def train_network(game_data, model):
                 if board is None:
                     print("ERROR! Illegal move, {}, while training".format(node_move[1]))
             if len(train_boards) >= batch_size: # Send chunk to GPU at batch limit
-                model.fit({"input": train_boards[:int(-len(game_data)*vs)]},
-                        {"target": train_next_moves[:int(-len(game_data)*vs)]},
-                        validation_set=({"input": train_boards[int(-len(game_data)*vs):]},
-                        {"target": train_next_moves[int(-len(game_data)*vs):]}), n_epoch=5,
+                model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
+                        {"target": train_next_moves[:int(-len(train_boards)*vs)]},
+                        validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
+                        {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
                         batch_size=gvg.train_batch_size, snapshot_step=5000, show_metric=True)
                 train_boards = []
                 train_next_moves = []
@@ -48,25 +48,24 @@ def train_network(game_data, model):
                 #     batch_acc = 0
 
     # Finish of what is remaining in the batch and give a visual update
-    model.fit({"input": train_boards[:int(-len(game_data)*vs)]},
-            {"target": train_next_moves[:int(-len(game_data)*vs)]},
-            validation_set=({"input": train_boards[int(-len(game_data)*vs):]},
-            {"target": train_next_moves[int(-len(game_data)*vs):]}), n_epoch=5,
-            batch_size=gvg.train_batch_size, snapshot_step=5000, show_metric=True)
+    model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
+            {"target": train_next_moves[:int(-len(train_boards)*vs)]},
+            validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
+            {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
+            batch_size=gvg.train_batch_size, snapshot_epoch=True, show_metric=True)
 
-# def predict_move(board, model, level=0):
-#     c_board = np.copy(board.reshape(board_size * board_size))
-#     prob_board = get_prob_board(c_board, model).reshape(board_size * board_size)
-#     sorted_board = np.asarray(sorted(enumerate(prob_board), reverse = True, key=lambda i:i[1]))
-#
-#     move_found = False
-#     i = 0
-#     while move_found == False:
-#         if i >= len(c_board):
-#             move_found = True
-#             return(-1)
-#         if c_board[int(sorted_board[i][0])] == 0 and go_board.make_move(c_board.reshape(board_size, board_size), np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)]), gvg.bot_channel, gvg.player_channel, debug=False) is not None:
-#             c_board[int(sorted_board[i][0])] = 1
-#             move_found = True
-#             return np.array([int(sorted_board[i][0]/board_size), int(sorted_board[i][0] % board_size)])
-#         i += 1
+    #model.save("test.tflearn")
+
+def predict_move(board, model, level=0):
+    return nanargmax(np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size))
+
+# Source: https://stackoverflow.com/questions/21989513/finding-index-of-maximum-value-in-array-with-numpy
+def nanargmax(a):
+    idx = np.argmax(a, axis=None)
+    multi_idx = np.unravel_index(idx, a.shape)
+    if np.isnan(a[multi_idx]):
+        nan_count = np.sum(np.isnan(a))
+        # In numpy < 1.8 use idx = np.argsort(a, axis=None)[-nan_count-1]
+        idx = np.argpartition(a, -nan_count-1, axis=None)[-nan_count-1]
+        multi_idx = np.unravel_index(idx, a.shape)
+    return multi_idx

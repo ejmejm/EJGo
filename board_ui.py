@@ -1,7 +1,7 @@
 import tkinter as tk
 import play_game as controller
 import numpy as np
-import global_vars_go
+import global_vars_go as gvg
 
 #Most of code used from http://stackoverflow.com/questions/4954395/create-board-game-like-grid-in-python
 
@@ -77,16 +77,19 @@ def advance_turn(x, y):
     controller.take_turn(np.array([x, y]), set_stones)
 
 def place_stone(x, y, player):
-    if player == global_vars_go.player_in:
+    if player == gvg.player_channel:
         ui_board.addpiece(str(x) + " " + str(y), player1, ui_board.columns - y, x)
-    elif player == global_vars_go.bot_in:
+    elif player == gvg.bot_channel:
         ui_board.addpiece(str(x) + " " + str(y), player2, ui_board.columns - y, x)
 
 def set_stones(board):
     for x in range(len(board)):
         for y in range(len(board[x])):
             ui_board.canvas.delete(str(x) + " " + str(y))
-            place_stone(x, y, board[x][y])
+            if board[x][y][gvg.player_channel] == gvg.filled:
+                place_stone(x, y, gvg.player_channel)
+            elif board[x][y][gvg.bot_channel] == gvg.filled:
+                place_stone(x, y, gvg.bot_channel)
 
 root = tk.Tk()
 ui_board = GameBoard(root)

@@ -18,6 +18,3 @@ def get_network():
     network = regression(network, optimizer='adam', learning_rate=0.001,
                          loss='categorical_crossentropy', name='target')
     return network
-
-def pr():
-    print("asdfasf")
