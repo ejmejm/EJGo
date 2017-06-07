@@ -6,9 +6,11 @@ from tflearn.layers.estimator import regression
 
 def get_network():
     network = input_data(shape=[None, 19, 19, 2], name='input')
-    network = conv_2d(network, 64, 3, activation='relu', regularizer="L2")
+    network = conv_2d(network, 32, 3, activation='relu', regularizer="L2")
     network = local_response_normalization(network)
     network = conv_2d(network, 64, 3, activation='relu', regularizer="L2")
+    network = local_response_normalization(network)
+    network = conv_2d(network, 128, 3, activation='relu', regularizer="L2")
     network = local_response_normalization(network)
     network = fully_connected(network, 128, activation='tanh')
     network = dropout(network, 0.8)

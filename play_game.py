@@ -24,7 +24,10 @@ def take_turn(player_move, set_stones=None):
     else:
         go_board.make_move(board, player_move, gvg.player_channel, gvg.bot_channel)
         bot_move = np.asarray(go_learn.predict_move(board, model))
-        go_board.make_move(board, bot_move, gvg.bot_channel, gvg.player_channel)
-        print("Bot move: ", bot_move + 1)
+        if board[bot_move[0]][bot_move[1]][gvg.player_channel] == gvg.filled:
+            print("Bot tried to move on player space")
+        else:
+            go_board.make_move(board, bot_move, gvg.bot_channel, gvg.player_channel)
+            print("Bot move: ", bot_move + 1)
         if set_stones != None:
             set_stones(board)

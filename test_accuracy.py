@@ -2,8 +2,9 @@ import glob
 import os
 import sys
 from sgfmill.sgfmill import sgf
-import go_nn as go_learn
 import global_vars_go as gvg
+import loader
+import utils
 
 kifuPath = "./kifu"
 games = []
@@ -21,8 +22,9 @@ for filename in glob.glob(os.path.join(kifuPath, "*.sgf")):
 
 print("Done loading {} games".format(len(games)))
 
-model = go_learn.setup_model(cont_save=True)
+model = loader.load_model_from_file(gvg.nn_type)
+X, Y = utils.games_to_states(games)
 
 print("Begin testing...")
-print("Accuracy:", go_learn.test_accuracy(games, model))
+print("Accuracy:", model.evaluate(X, Y))
 print("Finished testing")

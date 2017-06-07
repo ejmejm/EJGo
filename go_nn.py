@@ -36,7 +36,7 @@ def train_network(game_data, model):
                         {"target": train_next_moves[:int(-len(train_boards)*vs)]},
                         validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
                         {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
-                        batch_size=gvg.train_batch_size, snapshot_step=5000, show_metric=True)
+                        batch_size=gvg.train_batch_size, snapshot_step=7500, show_metric=True)
                 train_boards = []
                 train_next_moves = []
                 # if batch_index >= batch_display_stride:
@@ -52,12 +52,22 @@ def train_network(game_data, model):
             {"target": train_next_moves[:int(-len(train_boards)*vs)]},
             validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
             {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
-            batch_size=gvg.train_batch_size, snapshot_epoch=True, show_metric=True)
+            batch_size=gvg.train_batch_size, snapshot_step=7500, show_metric=True)
 
     #model.save("test.tflearn")
 
 def predict_move(board, model, level=0):
-    return nanargmax(np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size))
+    prob_board = np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size)
+
+    found_move = False
+    while found_move == False:
+        move = nanargmax(prob_board)
+        if board[move[0]][move[1]][gvg.player_channel] == gvg.filled or board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
+            prob_board[move[0]][move[1]] = -999999.0
+        else:
+            found_move = True
+
+    return move
 
 # Source: https://stackoverflow.com/questions/21989513/finding-index-of-maximum-value-in-array-with-numpy
 def nanargmax(a):
