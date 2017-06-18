@@ -60,5 +60,6 @@ for i in range(len(train_boards)):
             found = True
         else:
             pred[pred.argmax()] = 0
+        rank += 1
 print("Accuracy: {}".format(correct/len(train_boards)))
 print("Finished testing")
