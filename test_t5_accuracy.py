@@ -46,10 +46,19 @@ for game_index in range(len(games)):
                 print("ERROR! Illegal move, {}, while training".format(node_move))
 
 print("Begin testing...")
+#print(len(train_boards), train_boards[0].shape, len(train_next_moves), train_next_moves[0].shape)
+#print("Accuracy:", model.evaluate(train_boards, train_next_moves))
 correct = 0
+#train_next_moves = np.asarray(train_next_moves)
 for i in range(len(train_boards)):
     pred = np.asarray(model.predict(train_boards[i].reshape(1, 19, 19, 2))).reshape(gvg.board_size * gvg.board_size)
-    if pred.argmax() == train_next_moves[i].argmax():
-        correct += 1
+    rank = 0
+    found = False
+    while rank < 5 and found == False:
+        if pred.argmax() == train_next_moves[i].argmax():
+            correct += 1
+            found = True
+        else:
+            pred[pred.argmax()] = 0
 print("Accuracy: {}".format(correct/len(train_boards)))
 print("Finished testing")
