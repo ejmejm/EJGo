@@ -16,7 +16,10 @@ print("Loading game data...")
 
 load_batches = math.ceil(num_games/file_load_split)
 hm_epochs = gvg.hm_epochs
-model = loader.load_model(gvg.nn_type)
+if gvg.cont_from_save.lower() == "true":
+    model = loader.load_model_from_file(gvg.nn_type)
+else:
+    model = loader.load_model(gvg.nn_type)
 
 for epoch in range(hm_epochs):
     print("Beginning new epoch...")

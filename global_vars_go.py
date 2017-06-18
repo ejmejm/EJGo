@@ -17,6 +17,7 @@ learning_rate = 0.001 # Learning rate for training
 board_size = 19 # Side length of the Go board
 board_channels = 2 # 3rd dimmension of the board
 checkpoint_path = "checkpoints/" # Where model checkpoints are stored
+cont_from_save = "false" # True if loading a model save from a checkpoint and False otherwise
 
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces
@@ -27,3 +28,5 @@ if len(sys.argv) >= 2:
     num_games = int(sys.argv[1])
 if len(sys.argv) >= 3:
 	nn_type = sys.argv[2]
+if len(sys.argv) >= 4:
+	cont_from_save = sys.argv[3]
