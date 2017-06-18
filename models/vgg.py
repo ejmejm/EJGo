@@ -22,19 +22,9 @@ def get_network():
     network = conv_2d(network, 256, 3, activation='relu')
     network = max_pool_2d(network, 2, strides=2)
 
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = max_pool_2d(network, 2, strides=2)
-
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = conv_2d(network, 512, 3, activation='relu')
-    network = max_pool_2d(network, 2, strides=2)
-
-    network = fully_connected(network, 4096, activation='relu')
+    network = fully_connected(network, 1024, activation='relu')
     network = dropout(network, 0.5)
-    network = fully_connected(network, 4096, activation='relu')
+    network = fully_connected(network, 1024, activation='relu')
     network = dropout(network, 0.5)
     network = fully_connected(network, gvg.board_size * gvg.board_size, activation='softmax')
 

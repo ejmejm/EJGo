@@ -35,7 +35,7 @@ def train_network(game_data, model):
                 model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
                         {"target": train_next_moves[:int(-len(train_boards)*vs)]},
                         validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
-                        {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
+                        {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=1,
                         batch_size=gvg.train_batch_size, snapshot_step=7500, show_metric=True)
                 train_boards = []
                 train_next_moves = []
@@ -51,7 +51,7 @@ def train_network(game_data, model):
     model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
             {"target": train_next_moves[:int(-len(train_boards)*vs)]},
             validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
-            {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=2,
+            {"target": train_next_moves[int(-len(train_boards)*vs):]}), n_epoch=1,
             batch_size=gvg.train_batch_size, snapshot_step=7500, show_metric=True)
 
     #model.save("test.tflearn")
