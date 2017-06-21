@@ -25,6 +25,6 @@ def get_network():
     network = fully_connected(network, 512, activation='tanh')
     network = dropout(network, 0.6)
     network = fully_connected(network, 19*19, activation='softmax')
-    network = regression(network, optimizer='adam', learning_rate=0.01,
+    network = regression(network, optimizer='adam', learning_rate=0.001,
                          loss='categorical_crossentropy', name='target')
     return network
