@@ -22,3 +22,6 @@ def games_to_states(game_data):
                     print("ERROR! Illegal move, {}, while training".format(node_move))
 
     return train_boards, train_next_moves
+
+def new_board():
+    return np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))

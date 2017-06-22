@@ -12,7 +12,7 @@ stddev5 = math.sqrt(1.0 / (5 * 5 * 2))
 stddev3 = math.sqrt(1.0 / (3 * 3 * 192))
 
 def get_network():
-    biases = zeros(shape=[9, 19, 19, 192])
+    biases = zeros(shape=[9, 19, 1, 192])
     biases2 = zeros(shape=[19, 19, 1])
     network = input_data(shape=[None, 19, 19, 2], name='input')
     network = conv_2d(network, 192, 5, activation='elu', weights_init=truncated_normal(stddev=stddev5), bias=False) + biases[0]

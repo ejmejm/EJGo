@@ -8,3 +8,5 @@ tflearnImplementation/.ipynb_checkpoints/
 tflearnImplementation/__pycache__/
 tflearnImplementation/checkpoints/
 tflearnImplementation/sgfmill/
+gtp/
+ioproperties.ini

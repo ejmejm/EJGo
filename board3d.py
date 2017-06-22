@@ -5,6 +5,7 @@ from sgfmill.sgfmill import sgf_moves
 
 empty = gvg.empty
 filled = gvg.filled
+color_to_play = gvg.kgs_black # Used to track stone color for KGS Engine
 
 def make_move(board, move, player, enemy, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
@@ -28,6 +29,11 @@ def make_move(board, move, player, enemy, debug=False):
         if debug == True:
             print("ERROR! Illegal suicide move")
         return None
+
+    if color_to_play == gvg.kgs_black:
+        color_to_play = gvg.kgs_white
+    else:
+        color_to_play = gvg.kgs_black
 
     return board
 
@@ -127,6 +133,7 @@ def switch_player_perspec(board):
     return board
 
 def setup_board(game):
+    color_to_play = gvg.kgs_black
     preboard, plays = sgf_moves.get_setup_and_moves(game)
     rpreboard = preboard.board
     board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))
@@ -142,3 +149,7 @@ def setup_board(game):
                 board[i][j][color_stone] = gvg.filled
 
     return board.astype(int)
+
+def empty_board():
+    color_to_play = gvg.kgs_black
+    return np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))

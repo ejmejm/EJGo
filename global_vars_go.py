@@ -18,6 +18,9 @@ board_size = 19 # Side length of the Go board
 board_channels = 2 # 3rd dimmension of the board
 checkpoint_path = "checkpoints/" # Where model checkpoints are stored
 cont_from_save = "false" # True if loading a model save from a checkpoint and False otherwise
+kgs_empty = 0 # Empty with KGS engine
+kgs_black = 1 # Black stone with KGS engine
+kgs_white = 2 # White stone with KGS engine
 
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces
