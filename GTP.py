@@ -2,11 +2,12 @@
 
 import sys
 import os
+import global_vars_go as gvg
 
 class Color:
-    Empty = 0
-    Black = 1
-    White = 2
+    Empty = gvg.kgs_empty
+    Black = gvg.kgs_black
+    White = gvg.kgs_white
 
 def color_from_str(s):
     if 'w' in s or 'W' in s: return Color.White
@@ -194,8 +195,10 @@ class GTP:
         self.tell_client("")
 
     def loop(self):
+        print("ASHDUIAHSOUIDFHAUSIDBUIASHFDUBUAIFSD")
         while True:
             line = sys.stdin.readline().strip()
+            #print("--", line)
             if len(line) == 0: return
             line = line.strip()
             print("GTP: client sent:", line)
@@ -252,5 +255,5 @@ def redirect_all_output(logfile):
     true_stderr = sys.stderr
     fclient = sys.stdout
     logfile = "log_engine.txt"
-    sys.stdout = sys.stderr = open(logfile, 'w', 0) # 0 = unbuffered
+    sys.stdout = sys.stderr = open(logfile, 'wb', 0) # 0 = unbuffered
     return fclient

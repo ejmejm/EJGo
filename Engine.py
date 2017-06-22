@@ -39,11 +39,11 @@ class BaseEngine(object):
     def set_board_size(self, N):
         if N != gvg.board_size:
             print("ERROR! Board size was set to {}, but it can only be {}".format(N, gvg.board_size))
-        self.board = go_board.empty_board()
+        self.board = go_board.empty_board(None)
         return True
 
     def clear_board(self):
-        self.board = go_board.empty_board()
+        self.board = go_board.empty_board(None)
         self.state_stack = []
         self.opponent_passed = False
 
@@ -57,18 +57,18 @@ class BaseEngine(object):
 
     def stone_played(self, x, y, color):
         self.push_state()
-        if board.color_to_play == gvg.kgs_black:
+        if color == gvg.kgs_black:
             go_board.make_move(self.board, [x-1, y-1], gvg.bot_channel, gvg.player_channel)
         else:
             go_board.make_move(self.board, [x-1, y-1], gvg.player_channel, gvg.bot_channel)
         self.opponent_passed = False
         #self.board.show()
 
-    def move_was_played(self, move):
-        if move.is_play():
-            self.stone_played(move.x, move.y, self.board.color_to_play)
-        elif move.is_pass():
-            self.player_passed(self.board.color_to_play)
+    # def move_was_played(self, move):
+    #     if move.is_play():
+    #         self.stone_played(move.x, move.y, self.board.color_to_play)
+    #     elif move.is_pass():
+    #         self.player_passed(self.board.color_to_play)
 
     # subclasses must override this
     def pick_move(self, color):

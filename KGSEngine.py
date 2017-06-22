@@ -59,11 +59,13 @@ if __name__ == '__main__':
 
     from GTP import GTP
     from TFEngine import TFEngine
-    import MoveModels
-    from Book import PositionRecord
-    from Book import MoveRecord
+    import loader
+
+    print("-------------------------------------------------------------------------")
 
     engine = KGSEngine(TFEngine("EJEngine", loader.load_model_from_file(gvg.nn_type)))
+    print("-------------------------------------------------------------------------")
 
     gtp = GTP(engine, fclient)
+    print("-------------------------------------------------------------------------")
     gtp.loop()
