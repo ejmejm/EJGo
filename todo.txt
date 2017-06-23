@@ -1,0 +1,7 @@
+TODO List
+-Add Ko illegal move detection
+-Pass when opponent passes or when only move will fill one of two eyes
+-Check if KGS communication is one coordinate off
+-Train model on passing
+-Train on model on Ko
+-Add more attributes and channels to the model
