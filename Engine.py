@@ -89,11 +89,19 @@ class BaseEngine(object):
         self.push_state()
         if move.is_play():
             if channel_from_color(color) == gvg.bot_channel:
-                go_board.make_move(self.board, [move.x-1, move.y-1], gvg.bot_channel, gvg.player_channel)
+                go_board.make_move(self.board, [move.x, move.y], gvg.bot_channel, gvg.player_channel)
             elif channel_from_color(color) == gvg.player_channel:
-                go_board.make_move(self.board, [move.x-1, move.y-1], gvg.player_channel, gvg.bot_channel)
+                go_board.make_move(self.board, [move.x, move.y], gvg.player_channel, gvg.bot_channel)
+            else:
+                print("ERROR!", channel_from_color, "is not a valid channel")
         go_board.show_board(self.board)
-        return move
+        return Move(move.x + 1, move.y + 1)
+
+    def get_board_vis(self):
+        print("This feature has yet to be implemented")
+        # print(self.board)
+        # go_board.show_board(self.board)
+        # return go_board.board_to_str(self.board)
 
     def quit(self):
         pass

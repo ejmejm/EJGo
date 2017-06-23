@@ -162,6 +162,7 @@ def set_color(color):
     if color_to_play is None:
         color_to_play = color
 
+# Prints ASCII representation of the board
 def show_board(board):
     for i in range(board.shape[0]):
         print()
@@ -172,3 +173,17 @@ def show_board(board):
                 print("O ", end='')
             else:
                 print(". ", end='')
+
+# Returns string representation of the board
+def board_to_str():
+    vis = ""
+    for i in range(board.shape[0]):
+        vis += "\n"
+        for j in range(board.shape[1]):
+            if(board[j, gvg.board_size-1-i, gvg.bot_channel] == gvg.filled):
+                vis += "X "
+            elif(board[j, gvg.board_size-1-i, gvg.player_channel] == gvg.filled):
+                vis += "O "
+            else:
+                vis += ". "
+    return vis

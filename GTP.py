@@ -194,8 +194,11 @@ class GTP:
         print("GTP: got time_left")
         self.tell_client("")
 
+    def showboard(self):
+        board_vis = self.engine.get_board_vis()
+        self.tell_client(board_vis)
+
     def loop(self):
-        print("ASHDUIAHSOUIDFHAUSIDBUIASHFDUBUAIFSD")
         while True:
             line = sys.stdin.readline().strip()
             #print("--", line)
@@ -245,6 +248,8 @@ class GTP:
                 self.time_left(line)
             elif line.startswith("kgs-genmove_cleanup"):
                 self.kgs_genmove_cleanup(line)
+            elif line.startswith("showboard"):
+                self.showboard()
             else:
                 self.error_client("Don't recognize that command")
 
