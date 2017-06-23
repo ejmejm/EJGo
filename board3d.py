@@ -134,6 +134,10 @@ def switch_player_perspec(board):
 
 def setup_board(game):
     #color_to_play = gvg.kgs_black
+    #Switch which color is which channel when the channels are switched
+    bc = gvg.black_channel
+    gvg.black_channel = gvg.white_channel
+    gvg.white_channel = bc
     preboard, plays = sgf_moves.get_setup_and_moves(game)
     rpreboard = preboard.board
     board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))
@@ -157,3 +161,14 @@ def empty_board(color): # Color is the bot's color
 def set_color(color):
     if color_to_play is None:
         color_to_play = color
+
+def show_board(board):
+    for i in range(board.shape[0]):
+        print()
+        for j in range(board.shape[1]):
+            if(board[j, gvg.board_size-1-i, gvg.bot_channel] == gvg.filled):
+                print("X ", end='')
+            elif(board[j, gvg.board_size-1-i, gvg.player_channel] == gvg.filled):
+                print("O ", end='')
+            else:
+                print(". ", end='')

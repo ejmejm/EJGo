@@ -255,5 +255,5 @@ def redirect_all_output(logfile):
     true_stderr = sys.stderr
     fclient = sys.stdout
     logfile = "log_engine.txt"
-    sys.stdout = sys.stderr = open(logfile, 'wb', 0) # 0 = unbuffered
+    sys.stdout = sys.stderr = open(logfile, 'w') # 0 = unbuffered
     return fclient

@@ -1,0 +1,21 @@
+ASHDUIAHSOUIDFHAUSIDBUIASHFDUBUAIFSD
+GTP: client sent: boardsize 19
+GTP: setting board size to 19
+GTP: Told client: 
+GTP: client sent: clear_board
+GTP: clearing board
+GTP: Told client: 
+GTP: client sent: genmove white
+GTP: asked to generate a move for
+Traceback (most recent call last):
+  File "KGSEngine.py", line 67, in <module>
+    gtp.loop()
+  File "C:\Users\Edan\Desktop\GoHeuristics\GTP.py", line 225, in loop
+    self.generate_move(line)
+  File "C:\Users\Edan\Desktop\GoHeuristics\GTP.py", line 127, in generate_move
+    move = self.engine.generate_move(color, cleanup)
+  File "KGSEngine.py", line 35, in generate_move
+    move = self.engine.generate_move(color)
+  File "C:\Users\Edan\Desktop\GoHeuristics\Engine.py", line 91, in generate_move
+    self.board.play_stone(move.x, move.y, color)
+AttributeError: 'numpy.ndarray' object has no attribute 'play_stone'

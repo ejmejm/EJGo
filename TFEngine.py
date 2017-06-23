@@ -52,8 +52,13 @@ class TFEngine(BaseEngine):
     #     return None
 
     def pick_model_move(self, color):
-        if color != gvg.kgs_black:
+        # if color != gvg.kgs_black:
+        #     self.board = go_board.switch_player_perspec(self.board)
+
+        # If asked to make a move for enemy player, switch perspective as if we are them
+        if channel_from_color(color) == gvg.player_channel:
             self.board = go_board.switch_player_perspec(self.board)
+
         prob_board = np.array(self.model.predict(self.board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape((gvg.board_size, gvg.board_size))
         self.last_move_probs = prob_board
 

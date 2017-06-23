@@ -61,11 +61,7 @@ if __name__ == '__main__':
     from TFEngine import TFEngine
     import loader
 
-    print("-------------------------------------------------------------------------")
-
     engine = KGSEngine(TFEngine("EJEngine", loader.load_model_from_file(gvg.nn_type)))
-    print("-------------------------------------------------------------------------")
 
     gtp = GTP(engine, fclient)
-    print("-------------------------------------------------------------------------")
     gtp.loop()

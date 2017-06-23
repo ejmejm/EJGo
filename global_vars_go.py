@@ -21,6 +21,8 @@ cont_from_save = "false" # True if loading a model save from a checkpoint and Fa
 kgs_empty = 0 # Empty with KGS engine
 kgs_black = 1 # Black stone with KGS engine
 kgs_white = 2 # White stone with KGS engine
+black_channel = bot_channel # Black stone with KGS engine
+white_channel = player_channel # White stone with KGS engine
 
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces

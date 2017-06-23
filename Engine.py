@@ -1,7 +1,15 @@
-from GTP import Move
+from GTP import Move, Color, color_from_str
 import copy
 import board3d as go_board
 import global_vars_go as gvg
+
+def channel_from_color(color):
+    if color == Color.Black:
+        return gvg.black_channel
+    elif color == Color.White:
+        return gvg.white_channel
+    else:
+        print("ERROR!", color, "is not a valid color")
 
 class BaseEngine(object):
     def __init__(self):
@@ -20,10 +28,10 @@ class BaseEngine(object):
         if len(self.state_stack) > 0:
             self.pop_state()
             print("BaseEngine: after undo, board is")
-            self.board.show()
+            go_board.show_board(self.board)
         else:
             print("BaseEngine: undo called, but state_stack is empty. Board is")
-            self.board.show()
+            go_board.show_board(self.board)
 
     # subclasses must override this
     def name(self):
@@ -57,12 +65,14 @@ class BaseEngine(object):
 
     def stone_played(self, x, y, color):
         self.push_state()
-        if color == gvg.kgs_black:
+        if channel_from_color(color) == gvg.bot_channel:
             go_board.make_move(self.board, [x-1, y-1], gvg.bot_channel, gvg.player_channel)
-        else:
+        elif channel_from_color(color) == gvg.player_channel:
             go_board.make_move(self.board, [x-1, y-1], gvg.player_channel, gvg.bot_channel)
+        else:
+            print("ERROR!", channel_from_color(color), "is not a valid channel")
         self.opponent_passed = False
-        #self.board.show()
+        go_board.show_board(self.board)
 
     # def move_was_played(self, move):
     #     if move.is_play():
@@ -78,8 +88,11 @@ class BaseEngine(object):
         move = self.pick_move(color)
         self.push_state()
         if move.is_play():
-            self.board.play_stone(move.x, move.y, color)
-        #self.board.show()
+            if channel_from_color(color) == gvg.bot_channel:
+                go_board.make_move(self.board, [move.x-1, move.y-1], gvg.bot_channel, gvg.player_channel)
+            elif channel_from_color(color) == gvg.player_channel:
+                go_board.make_move(self.board, [move.x-1, move.y-1], gvg.player_channel, gvg.bot_channel)
+        go_board.show_board(self.board)
         return move
 
     def quit(self):
