@@ -78,11 +78,11 @@ class BaseEngine(object):
             print("ERROR!", channel_from_color(color), "is not a valid channel")
         go_board.show_board(self.board)
 
-    # def move_was_played(self, move):
-    #     if move.is_play():
-    #         self.stone_played(move.x, move.y, self.board.color_to_play)
-    #     elif move.is_pass():
-    #         self.player_passed(self.board.color_to_play)
+    def move_was_played(self, move, color):
+        if move.is_play():
+            self.stone_played(move.x, move.y, color)
+        elif move.is_pass():
+            self.player_passed(color)
 
     # subclasses must override this
     def pick_move(self, color):
@@ -98,7 +98,7 @@ class BaseEngine(object):
 
         go_board.show_board(self.board)
         return Move(move.x, move.y)
-        
+
     def get_board_vis(self):
         #print("This feature has yet to be implemented")
         return go_board.board_to_str(self.board)

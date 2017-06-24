@@ -48,7 +48,7 @@ class KGSEngine(BaseEngine):
         if move.is_resign():
             return Move.Resign
         elif move.is_pass() or cleanup:
-            self.engine.move_was_played(move)
+            self.engine.move_was_played(move, color)
             return move
         else:
             self.helper.undo()
