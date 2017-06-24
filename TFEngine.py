@@ -79,6 +79,9 @@ class TFEngine(BaseEngine):
         #     if self.kibitz_mode: # in kibitz mode compute model probabilities anyway
         #         self.pick_model_move(color) # ignore the model move
         #     return book_move
+        if self.opponent_passed:
+            return Move.Pass
+
         return self.pick_model_move(color)
 
     def get_last_move_probs(self):

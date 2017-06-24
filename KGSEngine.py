@@ -45,6 +45,7 @@ class KGSEngine(BaseEngine):
         return False
 
     def final_status_list(self, status):
+        return ""
         print("TODO: final_status_list(self, status)")
 
     def get_last_move_probs(self):

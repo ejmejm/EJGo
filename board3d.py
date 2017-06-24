@@ -50,7 +50,7 @@ def legal_move(board, move, player, enemy, captures=None, debug=False):
 
     return True
 
-def check_captures(orig_board, move):
+def check_captures(orig_board, move, debug=False):
     board = np.copy(orig_board)
 
     if board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
@@ -60,7 +60,8 @@ def check_captures(orig_board, move):
         player = gvg.player_channel
         enemy = gvg.bot_channel
     else:
-        print("ERROR! Cannot check the captures of an empty space")
+        if debug == True:
+            print("ERROR! Cannot check the captures of an empty space at, (", move[0]+1, ", ", move[1]+1, ")")
         return 0
 
     group_captures = 0
@@ -79,11 +80,8 @@ def check_captures(orig_board, move):
 
     return group_captures
 
-def check_liberties(board, position):
+def check_liberties(board, position, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
-
-    print(position)
-    print(board)
 
     if board[position[0]][position[1]][gvg.bot_channel] == gvg.filled:
         player = gvg.bot_channel
@@ -92,7 +90,8 @@ def check_liberties(board, position):
         player = gvg.player_channel
         enemy = gvg.bot_channel
     else:
-        print("ERROR! Cannot check the liberties of an empty space")
+        if debug:
+            print("ERROR! Cannot check the liberties of an empty space at, (", position[0]+1, ", ", position[1]+1, ")")
         return;
 
     board_check = np.empty((gvg.board_size, gvg.board_size))
@@ -139,7 +138,7 @@ def remove_stones(board, position):
         player = gvg.player_channel
         enemy = gvg.bot_channel
     else:
-        print("ERROR! Cannot check the liberties of an empty space")
+        print("ERROR! Cannot remove stones at the empty spot, (", move[0]+1, ", ", move[1]+1, ")")
         return;
 
     board_check = np.empty((gvg.board_size, gvg.board_size))
