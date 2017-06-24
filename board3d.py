@@ -11,6 +11,8 @@ prev_board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)) # Ke
 
 def make_move(board, move, player, enemy, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+    prev_board = board # Update previous board to the current board
+
     board[move[0]][move[1]][player] = filled
 
     group_captures = 0
@@ -28,10 +30,8 @@ def make_move(board, move, player, enemy, debug=False):
         group_captures += 1
 
     if legal_move(board, move, player, enemy, group_captures, True) == False: # If the move made is illegal
-        board[move[0]][move[1]][player] = empty # Undo it
+        board = prev_board # Undo it
         return None
-
-    prev_board = board # Update previous board to the current board
 
     return board
 
@@ -43,7 +43,7 @@ def legal_move(board, move, player, enemy, captures=None, debug=False):
         if debug == True:
             print("ERROR! Illegal suicide move")
         return False
-    elif (board == prev_board).all():
+    elif (board == prev_board).all(): # If Ko
         if debug == True:
             print("ERROR! Illegal Ko violation")
         return False
@@ -175,6 +175,10 @@ def switch_player_perspec(board):
             tmp = board[i][j][gvg.player_channel]
             board[i][j][gvg.player_channel] = board[i][j][gvg.bot_channel]
             board[i][j][gvg.bot_channel] = tmp
+    tmp = gvg.black_channel
+    gvg.black_channel = gvg.white_channel
+    gvg.white_channel = tmp
+
     return board
 
 def setup_board(game):
@@ -212,9 +216,9 @@ def show_board(board):
     for i in range(board.shape[0]):
         print()
         for j in range(board.shape[1]):
-            if(board[j, gvg.board_size-1-i, gvg.bot_channel] == gvg.filled):
+            if(board[j, gvg.board_size-1-i, gvg.black_channel] == gvg.filled):
                 print("X ", end='')
-            elif(board[j, gvg.board_size-1-i, gvg.player_channel] == gvg.filled):
+            elif(board[j, gvg.board_size-1-i, gvg.white_channel] == gvg.filled):
                 print("O ", end='')
             else:
                 print(". ", end='')
@@ -225,9 +229,9 @@ def board_to_str():
     for i in range(board.shape[0]):
         vis += "\n"
         for j in range(board.shape[1]):
-            if(board[j, gvg.board_size-1-i, gvg.bot_channel] == gvg.filled):
+            if(board[j, gvg.board_size-1-i, gvg.black_channel] == gvg.filled):
                 vis += "X "
-            elif(board[j, gvg.board_size-1-i, gvg.player_channel] == gvg.filled):
+            elif(board[j, gvg.board_size-1-i, gvg.white_channel] == gvg.filled):
                 vis += "O "
             else:
                 vis += ". "

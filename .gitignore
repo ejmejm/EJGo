@@ -9,5 +9,6 @@ tflearnImplementation/__pycache__/
 tflearnImplementation/checkpoints/
 tflearnImplementation/sgfmill/
 gtp/
-ioproperties.ini
-kgsGtp.jar
+*.ini
+*.jar
+*.txt

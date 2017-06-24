@@ -89,15 +89,16 @@ class BaseEngine(object):
         assert False
 
     def generate_move(self, color, cleanup=False):
-        move = self.pick_move(color)
         self.push_state()
+        print("---------------------", channel_from_color(color))
+        if channel_from_color(color) == gvg.player_channel:
+            self.board = go_board.switch_player_perspec(self.board)
+        print("---------------------", channel_from_color(color))
+        move = self.pick_move(color)
+        print("test")
         if move.is_play():
-            if channel_from_color(color) == gvg.bot_channel:
-                go_board.make_move(self.board, [move.x, move.y], gvg.bot_channel, gvg.player_channel)
-            elif channel_from_color(color) == gvg.player_channel:
-                go_board.make_move(self.board, [move.x, move.y], gvg.player_channel, gvg.bot_channel)
-            else:
-                print("ERROR!", channel_from_color, "is not a valid channel")
+            go_board.make_move(self.board, [move.x, move.y], gvg.bot_channel, gvg.player_channel)
+
         go_board.show_board(self.board)
         return Move(move.x, move.y)
 

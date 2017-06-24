@@ -52,8 +52,6 @@ class TFEngine(BaseEngine):
     #     return None
 
     def pick_model_move(self, color):
-        # if color != gvg.kgs_black:
-        #     self.board = go_board.switch_player_perspec(self.board)
 
         # If asked to make a move for enemy player, switch perspective as if we are them
         if channel_from_color(color) == gvg.player_channel:
@@ -66,7 +64,8 @@ class TFEngine(BaseEngine):
         found_move = False
         while found_move == False:
             move = go_learn.nanargmax(prob_board)
-            if self.board[move[0]][move[1]][gvg.player_channel] == gvg.filled or self.board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
+            if self.board[move[0]][move[1]][gvg.player_channel] == gvg.filled or self.board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
+            go_board.legal_move(self.board, move, gvg.bot_channel, gvg.player_channel) == False:
                 prob_board[move[0]][move[1]] = -999999.0
             else:
                 found_move = True
@@ -74,11 +73,6 @@ class TFEngine(BaseEngine):
         return Move(move[0], move[1])
 
     def pick_move(self, color):
-        # book_move = self.pick_book_move(color)
-        # if book_move:
-        #     if self.kibitz_mode: # in kibitz mode compute model probabilities anyway
-        #         self.pick_model_move(color) # ignore the model move
-        #     return book_move
         if self.opponent_passed:
             return Move.Pass
 
