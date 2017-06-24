@@ -126,7 +126,7 @@ class GTP:
         print("GTP: asked to generate a move for".format(color))
         move = self.engine.generate_move(color, cleanup)
         if move.is_play():
-            print("GTP: engine generated move (%d,%d)".format(move.x,move.y))
+            print("GTP: engine generated move ({},{})".format(move.x,move.y))
             self.tell_client(str_from_coords(move.x, move.y))
         elif move.is_pass():
             print("GTP: engine passed")

@@ -66,11 +66,11 @@ class BaseEngine(object):
     def stone_played(self, x, y, color):
         self.push_state()
         if channel_from_color(color) == gvg.bot_channel:
-            if x > 0 and y > 0: # As long as we don't pass, make the move on the board
-                go_board.make_move(self.board, [x-1, y-1], gvg.bot_channel, gvg.player_channel)
+            if x > -1 and y > -1: # As long as we don't pass, make the move on the board
+                go_board.make_move(self.board, [x, y], gvg.bot_channel, gvg.player_channel)
         elif channel_from_color(color) == gvg.player_channel:
-            if x > 0 and y > 0: # If enemy doesn't pass
-                go_board.make_move(self.board, [x-1, y-1], gvg.player_channel, gvg.bot_channel)
+            if x > -1 and y > -1: # If enemy doesn't pass
+                go_board.make_move(self.board, [x, y], gvg.player_channel, gvg.bot_channel)
                 self.opponent_passed = False
             elif x == -1 and y == -1: # If enemy passes
                 self.opponent_passed = True
