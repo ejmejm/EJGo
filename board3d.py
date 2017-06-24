@@ -7,6 +7,8 @@ empty = gvg.empty
 filled = gvg.filled
 color_to_play = gvg.kgs_black # Used to track stone color for KGS Engine
 
+prev_board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)) # Keep track of previous board to avoid Ko violation
+
 def make_move(board, move, player, enemy, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
     board[move[0]][move[1]][player] = filled
@@ -24,25 +26,69 @@ def make_move(board, move, player, enemy, debug=False):
     if move[1] - 1 >= 0 and board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
         remove_stones(board, np.array([move[0], move[1]-1]))
         group_captures += 1
-    if group_captures == 0 and check_liberties(board, move) == 0:
-        board[move[0]][move[1]][player] = empty
-        if debug == True:
-            print("ERROR! Illegal suicide move")
+
+    if legal_move(board, move, player, enemy, group_captures, True) == False: # If the move made is illegal
+        board[move[0]][move[1]][player] = empty # Undo it
         return None
 
-    # if color_to_play == gvg.kgs_black:
-    #     color_to_play = gvg.kgs_white
-    # else:
-    #     color_to_play = gvg.kgs_black
+    prev_board = board # Update previous board to the current board
 
     return board
 
-def check_liberties(board, position):
-    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
-    if board[position[0]][position[1]][gvg.bot_channel] == 1:
+def legal_move(board, move, player, enemy, captures=None, debug=False):
+    if captures is None:
+        captures = check_captures(board, move)
+
+    if captures == 0 and check_liberties(board, move) == 0:
+        if debug == True:
+            print("ERROR! Illegal suicide move")
+        return False
+    elif (board == prev_board).all():
+        if debug == True:
+            print("ERROR! Illegal Ko violation")
+        return False
+
+    return True
+
+def check_captures(orig_board, move):
+    board = np.copy(orig_board)
+
+    if board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
         player = gvg.bot_channel
         enemy = gvg.player_channel
-    elif board[position[0]][position[1]][gvg.player_channel] == 1:
+    elif board[move[0]][move[1]][gvg.player_channel] == gvg.filled:
+        player = gvg.player_channel
+        enemy = gvg.bot_channel
+    else:
+        print("ERROR! Cannot check the captures of an empty space")
+        return 0
+
+    group_captures = 0
+    if move[0] + 1 <= 18 and board[move[0]+1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
+        remove_stones(board, np.array([move[0]+1, move[1]]))
+        group_captures += 1
+    if move[0] - 1 >= 0 and board[move[0]-1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
+        remove_stones(board, np.array([move[0]-1, move[1]]))
+        group_captures += 1
+    if move[1] + 1 <= 18 and board[move[0]][move[1]+1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
+        remove_stones(board, np.array([move[0], move[1]+1]))
+        group_captures += 1
+    if move[1] - 1 >= 0 and board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
+        remove_stones(board, np.array([move[0], move[1]-1]))
+        group_captures += 1
+
+    return group_captures
+
+def check_liberties(board, position):
+    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+
+    print(position)
+    print(board)
+
+    if board[position[0]][position[1]][gvg.bot_channel] == gvg.filled:
+        player = gvg.bot_channel
+        enemy = gvg.player_channel
+    elif board[position[0]][position[1]][gvg.player_channel] == gvg.filled:
         player = gvg.player_channel
         enemy = gvg.bot_channel
     else:

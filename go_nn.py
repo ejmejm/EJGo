@@ -62,7 +62,8 @@ def predict_move(board, model, level=0):
     found_move = False
     while found_move == False:
         move = nanargmax(prob_board)
-        if board[move[0]][move[1]][gvg.player_channel] == gvg.filled or board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
+        if board[move[0]][move[1]][gvg.player_channel] == gvg.filled or board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
+        go_board.legal_move(board, move, gvg.bot_channel, gvg.player_channel) == False:
             prob_board[move[0]][move[1]] = -999999.0
         else:
             found_move = True
