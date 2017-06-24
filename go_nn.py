@@ -39,13 +39,6 @@ def train_network(game_data, model):
                         batch_size=gvg.train_batch_size, snapshot_step=7500, show_metric=True)
                 train_boards = []
                 train_next_moves = []
-                # if batch_index >= batch_display_stride:
-                #     batch_index = 0
-                #     batch_display_index += 1
-                #     batch_acc /= batch_display_stride
-                #     print("Epoch {}, Batch {} completed, Loss: {}, Accuracy: {}".format(epoch+1, batch_display_index, batch_loss, batch_acc))
-                #     batch_loss = 0
-                #     batch_acc = 0
 
     # Finish of what is remaining in the batch and give a visual update
     model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
@@ -56,14 +49,15 @@ def train_network(game_data, model):
 
     #model.save("test.tflearn")
 
-def predict_move(board, model, level=0):
-    prob_board = np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size)
+def predict_move(board, model, level=0, prob_board=None):
+    if prob_board is None:
+        prob_board = np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size)
 
     found_move = False
     while found_move == False:
         move = nanargmax(prob_board)
         if board[move[0]][move[1]][gvg.player_channel] == gvg.filled or board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
-        go_board.legal_move(board, move, gvg.bot_channel, gvg.player_channel) == False:
+        go_board.legal_move(board, move, move_made=False, player=gvg.bot_channel) == False:
             prob_board[move[0]][move[1]] = -999999.0
         else:
             found_move = True

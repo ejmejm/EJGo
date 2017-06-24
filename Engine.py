@@ -90,23 +90,18 @@ class BaseEngine(object):
 
     def generate_move(self, color, cleanup=False):
         self.push_state()
-        print("---------------------", channel_from_color(color))
         if channel_from_color(color) == gvg.player_channel:
             self.board = go_board.switch_player_perspec(self.board)
-        print("---------------------", channel_from_color(color))
         move = self.pick_move(color)
-        print("test")
         if move.is_play():
             go_board.make_move(self.board, [move.x, move.y], gvg.bot_channel, gvg.player_channel)
 
         go_board.show_board(self.board)
         return Move(move.x, move.y)
-
+        
     def get_board_vis(self):
-        print("This feature has yet to be implemented")
-        # print(self.board)
-        # go_board.show_board(self.board)
-        # return go_board.board_to_str(self.board)
+        #print("This feature has yet to be implemented")
+        return go_board.board_to_str(self.board)
 
     def quit(self):
         pass

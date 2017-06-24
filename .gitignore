@@ -9,6 +9,9 @@ tflearnImplementation/__pycache__/
 tflearnImplementation/checkpoints/
 tflearnImplementation/sgfmill/
 gtp/
+gnugo/
 *.ini
 *.jar
 *.txt
+*.exe
+*.dll

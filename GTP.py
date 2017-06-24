@@ -123,7 +123,7 @@ class GTP:
 
     def generate_move(self, line, cleanup=False):
         color = color_from_str(line.split()[1])
-        print("GTP: asked to generate a move for".format(color))
+        print("GTP: asked to generate a move for {}".format(color))
         move = self.engine.generate_move(color, cleanup)
         if move.is_play():
             print("GTP: engine generated move ({},{})".format(move.x,move.y))
@@ -190,6 +190,9 @@ class GTP:
         status = line.split()[-1]
         self.tell_client(self.engine.final_status_list(status))
 
+    def send_final_score(self):
+        self.tell_client(self.engine.final_score())
+
     def time_left(self, line):
         print("GTP: got time_left")
         self.tell_client("")
@@ -201,7 +204,6 @@ class GTP:
     def loop(self):
         while True:
             line = sys.stdin.readline().strip()
-            #print("--", line)
             if len(line) == 0: return
             line = line.strip()
             print("GTP: client sent:", line)
@@ -250,6 +252,8 @@ class GTP:
                 self.kgs_genmove_cleanup(line)
             elif line.startswith("showboard"):
                 self.showboard()
+            #elif line.startswith("final_score"):
+            #    self.send_final_score()
             else:
                 self.error_client("Don't recognize that command")
 

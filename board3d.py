@@ -29,13 +29,54 @@ def make_move(board, move, player, enemy, debug=False):
         remove_stones(board, np.array([move[0], move[1]-1]))
         group_captures += 1
 
-    if legal_move(board, move, player, enemy, group_captures, True) == False: # If the move made is illegal
+    if legal_move(board, move, move_made=True, captures=group_captures) == False: # If the move made is illegal
         board = prev_board # Undo it
         return None
 
     return board
 
-def legal_move(board, move, player, enemy, captures=None, debug=False):
+def legal_move(orig_board, move, move_made=False, player=None, captures=None, debug=False): # If it is legal to make a move in a space
+    board = np.copy(orig_board)
+
+    # If the player whose made the move has not been given, find who it was (assumes move has already been made)
+    if player is None:
+        if board[move[0]][move[1]][gvg.bot_channel] == gvg.filled:
+            player = gvg.bot_channel
+            enemy = gvg.player_channel
+        elif board[move[0]][move[1]][gvg.player_channel] == gvg.filled:
+            player = gvg.player_channel
+            enemy = gvg.bot_channel
+        else:
+            if debug == True:
+                print("ERROR! Cannot check for (il)legal move at empty space, (", move[0]+1, ", ", move[1]+1, ")")
+            return 0
+    else:
+        if player == gvg.bot_channel:
+            enemy = gvg.player_channel
+        else:
+            enemy = bot_channel
+
+    # If a move has not been made, make it and get number of captures
+    if move_made == False:
+        board[move[0]][move[1]][player] = filled
+
+        group_captures = 0
+        if move[0] + 1 <= 18 and board[move[0]+1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
+            remove_stones(board, np.array([move[0]+1, move[1]]))
+            group_captures += 1
+        if move[0] - 1 >= 0 and board[move[0]-1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
+            remove_stones(board, np.array([move[0]-1, move[1]]))
+            group_captures += 1
+        if move[1] + 1 <= 18 and board[move[0]][move[1]+1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
+            remove_stones(board, np.array([move[0], move[1]+1]))
+            group_captures += 1
+        if move[1] - 1 >= 0 and board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
+            remove_stones(board, np.array([move[0], move[1]-1]))
+            group_captures += 1
+
+        captures = group_captures
+
+    # If the move has been made, check how many captures
     if captures is None:
         captures = check_captures(board, move)
 
@@ -224,7 +265,7 @@ def show_board(board):
                 print(". ", end='')
 
 # Returns string representation of the board
-def board_to_str():
+def board_to_str(board):
     vis = ""
     for i in range(board.shape[0]):
         vis += "\n"

@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import os
+import sys
 from Engine import *
 from GTP import Move
 import go_nn as go_learn
@@ -52,7 +53,6 @@ class TFEngine(BaseEngine):
     #     return None
 
     def pick_model_move(self, color):
-
         # If asked to make a move for enemy player, switch perspective as if we are them
         if channel_from_color(color) == gvg.player_channel:
             self.board = go_board.switch_player_perspec(self.board)
@@ -60,21 +60,13 @@ class TFEngine(BaseEngine):
         prob_board = np.array(self.model.predict(self.board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape((gvg.board_size, gvg.board_size))
         self.last_move_probs = prob_board
 
-        move = []
-        found_move = False
-        while found_move == False:
-            move = go_learn.nanargmax(prob_board)
-            if self.board[move[0]][move[1]][gvg.player_channel] == gvg.filled or self.board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
-            go_board.legal_move(self.board, move, gvg.bot_channel, gvg.player_channel) == False:
-                prob_board[move[0]][move[1]] = -999999.0
-            else:
-                found_move = True
+        move = go_learn.predict_move(self.board, self.model, prob_board=prob_board)
 
         return Move(move[0], move[1])
 
     def pick_move(self, color):
-        if self.opponent_passed:
-            return Move.Pass
+        #if self.opponent_passed:
+        #    return Move.Pass
 
         return self.pick_model_move(color)
 
