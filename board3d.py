@@ -12,6 +12,7 @@ prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
 
 def make_move(board, move, player, enemy, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+    backup_board = np.copy(prev_boards[1])
     prev_boards[1] = np.copy(prev_boards[0]) # Update previous board to the current board
     prev_boards[0] = np.copy(board)
 
@@ -32,7 +33,9 @@ def make_move(board, move, player, enemy, debug=False):
         group_captures += 1
 
     if legal_move(board, move, move_made=True, captures=group_captures) == False: # If the move made is illegal
-        board = np.copy(prev_board[0]) # Undo it
+        board = np.copy(prev_boards[0]) # Undo it
+        prev_boards[0] = np.copy(prev_boards[1])
+        prev_boards[1] = backup_board
         return None
 
     return board
