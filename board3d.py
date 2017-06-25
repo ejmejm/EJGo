@@ -7,11 +7,13 @@ empty = gvg.empty
 filled = gvg.filled
 color_to_play = gvg.kgs_black # Used to track stone color for KGS Engine
 
-prev_board = np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)) # Keep track of previous board to avoid Ko violation
+prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
+              np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))] # Keep track of previous board to avoid Ko violation
 
 def make_move(board, move, player, enemy, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
-    prev_board = board # Update previous board to the current board
+    prev_boards[1] = np.copy(prev_boards[0]) # Update previous board to the current board
+    prev_boards[0] = np.copy(board)
 
     board[move[0]][move[1]][player] = filled
 
@@ -30,7 +32,7 @@ def make_move(board, move, player, enemy, debug=False):
         group_captures += 1
 
     if legal_move(board, move, move_made=True, captures=group_captures) == False: # If the move made is illegal
-        board = prev_board # Undo it
+        board = np.copy(prev_board[0]) # Undo it
         return None
 
     return board
@@ -84,7 +86,7 @@ def legal_move(orig_board, move, move_made=False, player=None, captures=None, de
         if debug == True:
             print("ERROR! Illegal suicide move")
         return False
-    elif (board == prev_board).all(): # If Ko
+    elif (board == prev_boards[1]).all(): # If Ko
         if debug == True:
             print("ERROR! Illegal Ko violation")
         return False
