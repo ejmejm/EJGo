@@ -1,5 +1,6 @@
 import numpy as np
 import queue
+import time
 import global_vars_go as gvg
 from sgfmill.sgfmill import sgf_moves
 
@@ -7,7 +8,7 @@ empty = gvg.empty
 filled = gvg.filled
 color_to_play = gvg.kgs_black # Used to track stone color for KGS Engine
 
-prev_moves = [(-10, -10), (-10, -10), (-10, -10), (-10, -10)]
+prev_moves = [[-10, -10], [-10, -10], [-10, -10], [-10, -10]]
 
 prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
               np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))] # Keep track of previous board to avoid Ko violation
@@ -117,21 +118,17 @@ def check_captures(orig_board, move, debug=False):
             print("ERROR! Cannot check the captures of an empty space at, (", move[0]+1, ", ", move[1]+1, ")")
         return 0
 
-    group_captures = 0
+    captures = 0
     if move[0] + 1 <= 18 and board[move[0]+1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
-        remove_stones(board, np.array([move[0]+1, move[1]]))
-        group_captures += 1
+        captures += remove_stones(board, np.array([move[0]+1, move[1]]))
     if move[0] - 1 >= 0 and board[move[0]-1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
-        remove_stones(board, np.array([move[0]-1, move[1]]))
-        group_captures += 1
+        captures += remove_stones(board, np.array([move[0]-1, move[1]]))
     if move[1] + 1 <= 18 and board[move[0]][move[1]+1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
-        remove_stones(board, np.array([move[0], move[1]+1]))
-        group_captures += 1
+        captures += remove_stones(board, np.array([move[0], move[1]+1]))
     if move[1] - 1 >= 0 and board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
-        remove_stones(board, np.array([move[0], move[1]-1]))
-        group_captures += 1
+        captures += remove_stones(board, np.array([move[0], move[1]-1]))
 
-    return group_captures
+    return captures
 
 def check_liberties(board, position, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
@@ -182,7 +179,7 @@ def check_liberties(board, position, debug=False):
             board_check[c_move[0]][c_move[1]-1] = True
     return liberties
 
-def remove_stones(board, position):
+def remove_stones(board, position, count_only=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
     if board[position[0]][position[1]][gvg.bot_channel] == filled:
         player = gvg.bot_channel
@@ -195,6 +192,7 @@ def remove_stones(board, position):
         return;
 
     board_check = np.empty((gvg.board_size, gvg.board_size))
+    captures = 0
     board_check.fill(False)
     positions = queue.Queue()
     positions.put(position)
@@ -218,8 +216,10 @@ def remove_stones(board, position):
             if board[c_move[0]][c_move[1]-1][player] == filled:
                 positions.put(np.array([c_move[0], c_move[1]-1]))
             board_check[c_move[0]][c_move[1]-1] = True
-        board[c_move[0]][c_move[1]][player] = empty
-    return board
+        if count_only == False:
+            board[c_move[0]][c_move[1]][player] = empty
+        captures += 1
+    return captures
 
 def encode_liberty_channels(board):
     liberty_channels = np.zeros((8, gvg.board_size, gvg.board_size))
@@ -277,35 +277,121 @@ def encode_prev_moves_channels(board):
     return prev_moves_channels
 
 def get_encoded_board(board):
-    empty_channel = encode_empty_channel(board)
-    liberty_channels = encode_liberty_channels(board)
-    capture_channels = encode_capture_channels(board)
-    prev_moves_channels = encode_prev_moves_channels(board)
-    border_channel = encode_border_channel(board)
+    enc_board = np.zeros((gvg.board_size, gvg.board_size, 20))
+    for i in range(enc_board.shape[0]):
+        for j in range(enc_board.shape[1]):
+            # Border channel
+            enc_board[i, j, gvg.border_channel] = filled
+            if board[i, j, gvg.bot_channel] == filled:
+                enc_board[i, j, gvg.bot_channel] = filled
 
-    board_n = np.zeros((2, gvg.board_size, gvg.board_size))
-    for i in range(gvg.board_size):
-        for j in range(gvg.board_size):
-            if board[i, j, 0] == filled:
-                board_n[0, i, j] = filled
-            elif board[i, j, 1] == filled:
-                board_n[1, i, j] = filled
+                # Liberties
+                liberties = min(check_liberties(board, (i, j)), 4)
+                if liberties > 0:
+                    enc_board[i, j, gvg.bot_liberty_channels[0] + liberties - 1] = filled
+            elif board[i, j, gvg.player_channel] == filled:
+                enc_board[i, j, gvg.player_channel] = filled
 
-    encoded_board = np.array([board_n[0], board_n[1], empty_channel, liberty_channels[0], \
-        liberty_channels[1], liberty_channels[2], liberty_channels[3], liberty_channels[4], \
-        liberty_channels[5], liberty_channels[6], liberty_channels[7], capture_channels[0], \
-        capture_channels[1], capture_channels[2], capture_channels[3], capture_channels[4], \
-        capture_channels[5], capture_channels[6], capture_channels[7], prev_moves_channels[0], \
-        prev_moves_channels[1], prev_moves_channels[2], prev_moves_channels[3], border_channel])
+                # Liberties
+                liberties = min(check_liberties(board, (i, j)), 4)
+                if liberties > 0:
+                    enc_board[i, j, gvg.player_liberty_channels[0] + liberties - 1] = filled
+            else:
+                enc_board[i, j, gvg.empty_channel] = filled
 
-    filter_encoded = np.zeros((gvg.board_size, gvg.board_size, encoded_board.shape[0]))
+    for i in range(enc_board.shape[0]):
+        for j in range(enc_board.shape[1]):
+            if enc_board[i, j, gvg.empty_channel] == filled:
+                board[i, j, gvg.bot_channel] = filled
+                enemy = gvg.player_channel
 
-    for i in range(encoded_board.shape[0]):
-        for j in range(gvg.board_size):
-            for k in range(gvg.board_size):
-                filter_encoded[j, k, i] = encoded_board[i, j, k]
+                # Captures channel
+                captures = 0
 
-    return filter_encoded
+                if i+1 <= 18 and board[i+1, j, enemy] == filled and \
+                enc_board[i+1, j, gvg.player_liberty_channels[1]] == 0 and \
+                enc_board[i+1, j, gvg.player_liberty_channels[2]] == 0 and \
+                enc_board[i+1, j, gvg.player_liberty_channels[3]] == 0:
+                    captures = min(captures + remove_stones(board, np.array([i+1, j]), count_only=True), 4)
+                if captures < 4 and i-1 >= 0 and board[i-1, j, enemy] == filled and \
+                enc_board[i-1, j, gvg.player_liberty_channels[1]] == 0 and \
+                enc_board[i-1, j, gvg.player_liberty_channels[2]] == 0 and \
+                enc_board[i-1, j, gvg.player_liberty_channels[3]] == 0:
+                    captures = min(captures + remove_stones(board, np.array([i-1, j]), count_only=True), 4)
+                if captures < 4 and j+1 <= 18 and board[i, j+1, enemy] == filled and \
+                enc_board[i, j+1, gvg.player_liberty_channels[1]] == 0 and \
+                enc_board[i, j+1, gvg.player_liberty_channels[2]] == 0 and \
+                enc_board[i, j+1, gvg.player_liberty_channels[3]] == 0:
+                    captures = min(captures + remove_stones(board, np.array([i, j+1]), count_only=True), 4)
+                if captures < 4 and j-1 >= 0 and board[i, j-1, enemy] == filled and \
+                enc_board[i, j-1, gvg.player_liberty_channels[1]] == 0 and \
+                enc_board[i, j-1, gvg.player_liberty_channels[2]] == 0 and \
+                enc_board[i, j-1, gvg.player_liberty_channels[3]] == 0:
+                    captures = min(captures + remove_stones(board, np.array([i, j-1]), count_only=True), 4)
+
+                board[i, j, gvg.bot_channel] = empty
+
+                if captures > 0:
+                    enc_board[i, j, gvg.capture_channels[0] + captures - 1] = filled
+
+    # Prev moves
+    for i in range(4):
+        if prev_moves[i][0] >= 0 and prev_moves[i][1] >= 0:
+            enc_board[prev_moves[i][0], prev_moves[i][1], gvg.prev_moves_channels[i]] = filled
+
+    return enc_board
+
+# def get_encoded_board(board):
+#     import time
+#     t = (time.time() * 1000)
+#     empty_channel = encode_empty_channel(board)
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#     liberty_channels = encode_liberty_channels(board)
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#     capture_channels = encode_capture_channels(board)
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#     prev_moves_channels = encode_prev_moves_channels(board)
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#     border_channel = encode_border_channel(board)
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#
+#     board_n = np.zeros((2, gvg.board_size, gvg.board_size))
+#     for i in range(gvg.board_size):
+#         for j in range(gvg.board_size):
+#             if board[i, j, 0] == filled:
+#                 board_n[0, i, j] = filled
+#             elif board[i, j, 1] == filled:
+#                 board_n[1, i, j] = filled
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#
+#     encoded_board = np.array([board_n[0], board_n[1], empty_channel, liberty_channels[0], \
+#         liberty_channels[1], liberty_channels[2], liberty_channels[3], liberty_channels[4], \
+#         liberty_channels[5], liberty_channels[6], liberty_channels[7], capture_channels[0], \
+#         capture_channels[1], capture_channels[2], capture_channels[3], capture_channels[4], \
+#         capture_channels[5], capture_channels[6], capture_channels[7], prev_moves_channels[0], \
+#         prev_moves_channels[1], prev_moves_channels[2], prev_moves_channels[3], border_channel])
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#
+#     filter_encoded = np.zeros((gvg.board_size, gvg.board_size, encoded_board.shape[0]))
+#
+#     for i in range(encoded_board.shape[0]):
+#         for j in range(gvg.board_size):
+#             for k in range(gvg.board_size):
+#                 filter_encoded[j, k, i] = encoded_board[i, j, k]
+#
+#     print((time.time() * 1000) - t)
+#     t = (time.time() * 1000)
+#
+#     return filter_encoded
+#
+# e = get_encoded_board(np.zeros((19, 19, 2)))
 
 def switch_player_perspec(board):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
