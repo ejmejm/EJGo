@@ -22,7 +22,7 @@ def train_network(game_data, model):
 
             node_move = node.get_move()[1]
             if node_move is not None:
-                train_boards.append(np.copy(board))
+                train_boards.append(go_board.get_encoded_board(np.copy(board)))
 
                 next_move = np.zeros(gvg.board_size * gvg.board_size).reshape(gvg.board_size, gvg.board_size)
                 next_move[node_move[0], node_move[1]] = gvg.filled # y = an array in the form [board_x_position, board_y_position]

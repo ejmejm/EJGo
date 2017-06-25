@@ -7,6 +7,8 @@ empty = gvg.empty
 filled = gvg.filled
 color_to_play = gvg.kgs_black # Used to track stone color for KGS Engine
 
+prev_moves = [(-10, -10), (-10, -10), (-10, -10), (-10, -10)]
+
 prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
               np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))] # Keep track of previous board to avoid Ko violation
 
@@ -37,6 +39,11 @@ def make_move(board, move, player, enemy, debug=False):
         prev_boards[0] = np.copy(prev_boards[1])
         prev_boards[1] = backup_board
         return None
+
+    prev_moves[3] = prev_moves[2]
+    prev_moves[2] = prev_moves[1]
+    prev_moves[1] = prev_moves[0]
+    prev_moves[0] = move
 
     return board
 
@@ -213,6 +220,92 @@ def remove_stones(board, position):
             board_check[c_move[0]][c_move[1]-1] = True
         board[c_move[0]][c_move[1]][player] = empty
     return board
+
+def encode_liberty_channels(board):
+    liberty_channels = np.zeros((8, gvg.board_size, gvg.board_size))
+    for i in range(gvg.board_size):
+        for j in range(gvg.board_size):
+            if board[i, j, gvg.bot_channel] == filled:
+                liberties = min(check_liberties(board, (i, j), True), 4)
+                liberty_channels[liberties - 1, i, j] = gvg.filled
+            elif board[i, j, gvg.player_channel] == filled:
+                liberties = min(check_liberties(board, (i, j), True), 4)
+                liberty_channels[liberties + 3, i, j] = gvg.filled
+    return liberty_channels
+
+def encode_capture_channels(board):
+    capture_channels = np.zeros((8, gvg.board_size, gvg.board_size))
+    for i in range(gvg.board_size):
+        for j in range(gvg.board_size):
+            if board[i, j, gvg.bot_channel] == empty and \
+                board[i, j, gvg.player_channel] == empty:
+
+                board[i, j, gvg.bot_channel] = filled
+                captures = min(check_captures(board, (i, j)), 4)
+                board[i, j, gvg.bot_channel] = empty
+                if captures > 0:
+                    capture_channels[captures-1, i, j] = filled
+
+                board[i, j, gvg.player_channel] = filled
+                captures = min(check_captures(board, (i, j)), 4)
+                board[i, j, gvg.player_channel] = empty
+                if captures > 0:
+                  capture_channels[captures + 3, i, j] = filled
+
+    return capture_channels
+
+def encode_border_channel(board):
+    return np.ones((gvg.board_size, gvg.board_size))
+
+def encode_empty_channel(board):
+    empty_channel = np.zeros((gvg.board_size, gvg.board_size))
+    for i in range(gvg.board_size):
+        for j in range(gvg.board_size):
+            if board[i, j, gvg.bot_channel] == empty and \
+                board[i, j, gvg.player_channel] == empty:
+                empty_channel[i, j] = filled
+
+    return empty_channel
+
+def encode_prev_moves_channels(board):
+    prev_moves_channels = np.zeros((4, gvg.board_size, gvg.board_size))
+
+    for i in range(4):
+        if prev_moves[i][0] >= 0 and prev_moves[i][1] >= 0:
+            prev_moves_channels[i, prev_moves[0], prev_moves[1]] = filled
+
+    return prev_moves_channels
+
+def get_encoded_board(board):
+    empty_channel = encode_empty_channel(board)
+    liberty_channels = encode_liberty_channels(board)
+    capture_channels = encode_capture_channels(board)
+    prev_moves_channels = encode_prev_moves_channels(board)
+    border_channel = encode_border_channel(board)
+
+    board_n = np.zeros((2, gvg.board_size, gvg.board_size))
+    for i in range(gvg.board_size):
+        for j in range(gvg.board_size):
+            if board[i, j, 0] == filled:
+                board_n[0, i, j] = filled
+            elif board[i, j, 1] == filled:
+                board_n[1, i, j] = filled
+
+    encoded_board = np.array([board_n[0], board_n[1], empty_channel, liberty_channels[0], \
+        liberty_channels[1], liberty_channels[2], liberty_channels[3], liberty_channels[4], \
+        liberty_channels[5], liberty_channels[6], liberty_channels[7], capture_channels[0], \
+        capture_channels[1], capture_channels[2], capture_channels[3], capture_channels[4], \
+        capture_channels[5], capture_channels[6], capture_channels[7], prev_moves_channels[0], \
+        prev_moves_channels[1], prev_moves_channels[2], prev_moves_channels[3], border_channel])
+
+    filter_encoded = np.zeros((gvg.board_size, gvg.board_size, encoded_board.shape[0]))
+
+    for i in range(encoded_board.shape[0]):
+        for j in range(gvg.board_size):
+            for k in range(gvg.board_size):
+                filter_encoded[j, k, i] = encoded_board[i, j, k]
+
+    return filter_encoded
 
 def switch_player_perspec(board):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
