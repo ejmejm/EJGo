@@ -13,32 +13,64 @@ prev_moves = [[-10, -10], [-10, -10], [-10, -10], [-10, -10]]
 prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
               np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))] # Keep track of previous board to avoid Ko violation
 
+last_liberties = np.zeros((gvg.board_size, gvg.board_size, 4))
+
+prev_liberties = [np.zeros((gvg.board_size, gvg.board_size, 4)), \
+              np.zeros((gvg.board_size, gvg.board_size, 4))]
+
+def reset_liberties():
+    last_liberties = np.zeros((gvg.board_size, gvg.board_size, 4))
+    prev_liberties = [np.zeros((gvg.board_size, gvg.board_size, 4)), \
+                  np.zeros((gvg.board_size, gvg.board_size, 4))]
+
 def make_move(board, move, player, enemy, debug=False):
+    global last_liberties
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
     backup_board = np.copy(prev_boards[1])
+    backup_liberty = np.copy(prev_liberties[1])
     prev_boards[1] = np.copy(prev_boards[0]) # Update previous board to the current board
     prev_boards[0] = np.copy(board)
+    prev_liberties[1] = np.copy(prev_liberties[0]) # Update previous liberties to the current liberties
+    prev_liberties[0] = np.copy(last_liberties)
 
     board[move[0]][move[1]][player] = filled
+    marked_to_check = []
 
     group_captures = 0
-    if move[0] + 1 <= 18 and board[move[0]+1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
-        remove_stones(board, np.array([move[0]+1, move[1]]))
-        group_captures += 1
-    if move[0] - 1 >= 0 and board[move[0]-1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
-        remove_stones(board, np.array([move[0]-1, move[1]]))
-        group_captures += 1
-    if move[1] + 1 <= 18 and board[move[0]][move[1]+1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
-        remove_stones(board, np.array([move[0], move[1]+1]))
-        group_captures += 1
-    if move[1] - 1 >= 0 and board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
-        remove_stones(board, np.array([move[0], move[1]-1]))
-        group_captures += 1
+    if move[0] + 1 <= 18:
+        if board[move[0]+1][move[1]][enemy] and check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
+                remove_stones(board, np.array([move[0]+1, move[1]]))
+                group_captures += 1
+        else:
+            marked_to_check.append((move[0]+1, move[1]))
+    if move[0] - 1 >= 0:
+        if board[move[0]-1][move[1]][enemy] == filled and check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
+            remove_stones(board, np.array([move[0]-1, move[1]]))
+            group_captures += 1
+        else:
+            marked_to_check.append((move[0]-1, move[1]))
+    if move[1] + 1 <= 18:
+        if board[move[0]][move[1]+1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]+1])) == 0:
+            remove_stones(board, np.array([move[0], move[1]+1]))
+            group_captures += 1
+        else:
+            marked_to_check.append((move[0], move[1]+1))
+    if move[1] - 1 >= 0:
+        if board[move[0]][move[1]-1][enemy] == filled and check_liberties(board, np.array([move[0], move[1]-1])) == 0:
+            remove_stones(board, np.array([move[0], move[1]-1]))
+            group_captures += 1
+        else:
+            marked_to_check.append((move[0], move[1]-1))
+
+    # Update liberties
 
     if legal_move(board, move, move_made=True, captures=group_captures) == False: # If the move made is illegal
         board = np.copy(prev_boards[0]) # Undo it
         prev_boards[0] = np.copy(prev_boards[1])
         prev_boards[1] = backup_board
+        last_liberties = np.copy(prev_liverties[0])
+        prev_liverties[0] = np.copy(prev_liverties[1])
+        prev_liverties[1] = backup_liberty
         return None
 
     prev_moves[3] = prev_moves[2]
@@ -129,6 +161,63 @@ def check_captures(orig_board, move, debug=False):
         captures += remove_stones(board, np.array([move[0], move[1]-1]))
 
     return captures
+
+def set_liberty(move, val):
+    last_liberties[move[0], move[1], 0] = gvg.empty
+    last_liberties[move[0], move[1], 1] = gvg.empty
+    last_liberties[move[0], move[1], 2] = gvg.empty
+    last_liberties[move[0], move[1], 3] = gvg.empty
+    val = min(val, 4)
+    if val > 0:
+        last_liberties[move[0], move[1], val - 1] = gvg.filled
+
+def set_liberty_group(board, position, debug=False):
+    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+
+    if board[position[0]][position[1]][gvg.bot_channel] == gvg.filled:
+        player = gvg.bot_channel
+        enemy = gvg.player_channel
+    elif board[position[0]][position[1]][gvg.player_channel] == gvg.filled:
+        player = gvg.player_channel
+        enemy = gvg.bot_channel
+    else:
+        set_liberty(move, 0)
+        return;
+
+    board_check = np.empty((gvg.board_size, gvg.board_size))
+    board_check.fill(False)
+    positions = queue.Queue()
+    positions.put(position)
+    board_check[position[0]][position[1]] = True
+
+    liberties = 0
+    while positions.empty() == False:
+        c_move = positions.get()
+        if c_move[0] + 1 <= 18 and board_check[c_move[0]+1][c_move[1]] == False:
+            if board[c_move[0]+1][c_move[1]][player] == filled:
+                positions.put(np.array([c_move[0]+1, c_move[1]]))
+            elif board[c_move[0]+1][c_move[1]][enemy] == empty:
+                liberties += 1
+            board_check[c_move[0]+1][c_move[1]] = True
+        if c_move[0] - 1 >= 0 and board_check[c_move[0]-1][c_move[1]] == False:
+            if board[c_move[0]-1][c_move[1]][player] == filled:
+                positions.put(np.array([c_move[0]-1, c_move[1]]))
+            elif board[c_move[0]-1][c_move[1]][enemy] == empty:
+                liberties += 1
+            board_check[c_move[0]-1][c_move[1]] = True
+        if c_move[1] + 1 <= 18 and board_check[c_move[0]][c_move[1]+1] == False:
+            if board[c_move[0]][c_move[1]+1][player] == filled:
+                positions.put(np.array([c_move[0], c_move[1]+1]))
+            elif board[c_move[0]][c_move[1]+1][enemy] == empty:
+                liberties += 1
+            board_check[c_move[0]][c_move[1]+1] = True
+        if c_move[1] - 1 >= 0 and board_check[c_move[0]][c_move[1]-1] == False:
+            if board[c_move[0]][c_move[1]-1][player] == filled:
+                positions.put(np.array([c_move[0], c_move[1]-1]))
+            elif board[c_move[0]][c_move[1]-1][enemy] == empty:
+                liberties += 1
+            board_check[c_move[0]][c_move[1]-1] = True
+    return liberties
 
 def check_liberties(board, position, debug=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
@@ -276,6 +365,7 @@ def encode_prev_moves_channels(board):
 
     return prev_moves_channels
 
+# Takes ~20 milliseconds on average
 def get_encoded_board(board):
     enc_board = np.zeros((gvg.board_size, gvg.board_size, 20))
     for i in range(enc_board.shape[0]):
@@ -341,58 +431,6 @@ def get_encoded_board(board):
 
     return enc_board
 
-# def get_encoded_board(board):
-#     import time
-#     t = (time.time() * 1000)
-#     empty_channel = encode_empty_channel(board)
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#     liberty_channels = encode_liberty_channels(board)
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#     capture_channels = encode_capture_channels(board)
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#     prev_moves_channels = encode_prev_moves_channels(board)
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#     border_channel = encode_border_channel(board)
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#
-#     board_n = np.zeros((2, gvg.board_size, gvg.board_size))
-#     for i in range(gvg.board_size):
-#         for j in range(gvg.board_size):
-#             if board[i, j, 0] == filled:
-#                 board_n[0, i, j] = filled
-#             elif board[i, j, 1] == filled:
-#                 board_n[1, i, j] = filled
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#
-#     encoded_board = np.array([board_n[0], board_n[1], empty_channel, liberty_channels[0], \
-#         liberty_channels[1], liberty_channels[2], liberty_channels[3], liberty_channels[4], \
-#         liberty_channels[5], liberty_channels[6], liberty_channels[7], capture_channels[0], \
-#         capture_channels[1], capture_channels[2], capture_channels[3], capture_channels[4], \
-#         capture_channels[5], capture_channels[6], capture_channels[7], prev_moves_channels[0], \
-#         prev_moves_channels[1], prev_moves_channels[2], prev_moves_channels[3], border_channel])
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#
-#     filter_encoded = np.zeros((gvg.board_size, gvg.board_size, encoded_board.shape[0]))
-#
-#     for i in range(encoded_board.shape[0]):
-#         for j in range(gvg.board_size):
-#             for k in range(gvg.board_size):
-#                 filter_encoded[j, k, i] = encoded_board[i, j, k]
-#
-#     print((time.time() * 1000) - t)
-#     t = (time.time() * 1000)
-#
-#     return filter_encoded
-#
-# e = get_encoded_board(np.zeros((19, 19, 2)))
-
 def switch_player_perspec(board):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
     for i in range(len(board)):
@@ -409,6 +447,7 @@ def switch_player_perspec(board):
 def setup_board(game):
     #color_to_play = gvg.kgs_black
     #Switch which color is which channel when the channels are switched
+    reset_liberties()
     bc = gvg.black_channel
     gvg.black_channel = gvg.white_channel
     gvg.white_channel = bc
@@ -425,11 +464,15 @@ def setup_board(game):
         for j in range(len(rpreboard[i])):
             if rpreboard[i][j] == "b":
                 board[i][j][color_stone] = gvg.filled
+                last_liberties[i, j, 3] = gvg.filled
 
     return board.astype(int)
 
 def empty_board(color): # Color is the bot's color
     color_to_play = color
+    reset_liberties()
+    prev_boards = [np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels)), \
+                  np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))]
     return np.zeros((gvg.board_size, gvg.board_size, gvg.board_channels))
 
 def set_color(color):
