@@ -68,9 +68,9 @@ def make_move(board, move, player, enemy, debug=False):
         board = np.copy(prev_boards[0]) # Undo it
         prev_boards[0] = np.copy(prev_boards[1])
         prev_boards[1] = backup_board
-        last_liberties = np.copy(prev_liverties[0])
-        prev_liverties[0] = np.copy(prev_liverties[1])
-        prev_liverties[1] = backup_liberty
+        last_liberties = np.copy(prev_liberties[0])
+        prev_liberties[0] = np.copy(prev_liberties[1])
+        prev_liberties[1] = backup_liberty
         return None
 
     prev_moves[3] = prev_moves[2]

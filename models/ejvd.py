@@ -4,7 +4,6 @@ from tflearn.layers.conv import conv_2d
 from tflearn.layers.normalization import local_response_normalization
 from tflearn.layers.estimator import regression
 
-# 43.704% Accuracy with ~32,000 games
 def get_network():
     network = input_data(shape=[None, 19, 19, 2], name='input')
     network = conv_2d(network, 64, 7, activation='relu', regularizer="L2")
