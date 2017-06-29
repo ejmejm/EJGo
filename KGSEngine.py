@@ -37,7 +37,7 @@ class KGSEngine(BaseEngine):
 
     def stone_played(self, x, y, color):
         self.engine.stone_played(x, y, color)
-        self.engine.stone_played(x, y, color)
+        self.helper.stone_played(x, y, color)
 
     def generate_move(self, color, cleanup=False):
         pass_checking_level = 5
@@ -70,7 +70,7 @@ class KGSEngine(BaseEngine):
         self.helper.quit()
 
     def supports_final_status_list(self):
-        return False
+        return True
 
     def final_status_list(self, status):
         print("Final status list is done by GNU Go")

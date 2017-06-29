@@ -61,7 +61,8 @@ class BaseEngine(object):
     def player_passed(self, color):
         self.push_state()
         #self.board.play_pass() TODO: create pass channel for board
-        self.opponent_passed = True
+        if channel_from_color(color) == gvg.player_channel:
+            self.opponent_passed = True
 
     def stone_played(self, x, y, color):
         self.push_state()
