@@ -10,6 +10,7 @@ player_liberty_channels = [7, 8, 9, 10] # Channels for liberties of oppenent
 capture_channels = [11, 12, 13, 14] # Channels for the captures of the bot
 prev_moves_channels = [15, 16, 17, 18] # Channels for previous moves made
 border_channel = 19 # Channel to keep clear border when padding
+enc_board_channels = 20
 num_games = 1000 # Number of games to train and test accuracy on
 hm_epochs = 7 # Number of loops through all training data
 process_batch_size = 64 * 500 # Number of games to process into board states before fitting

@@ -49,9 +49,10 @@ def train_network(game_data, model):
 
     #model.save("test.tflearn")
 
-def predict_move(board, model, level=0, prob_board=None):
+def predict_move(orig_board, model, level=0, prob_board=None):
+    board = go_board.get_encoded_board(np.copy(orig_board))
     if prob_board is None:
-        prob_board = np.array(model.predict(board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels))).reshape(gvg.board_size, gvg.board_size)
+        prob_board = np.array(model.predict(board)).reshape(gvg.board_size, gvg.board_size)
 
     found_move = False
     while found_move == False:
