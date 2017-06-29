@@ -22,7 +22,7 @@ def train_network(game_data, model):
 
             node_move = node.get_move()[1]
             if node_move is not None:
-                train_boards.append(go_board.get_encoded_board(np.copy(board)))
+                train_boards.append(go_board.get_encoded_board(board))
 
                 next_move = np.zeros(gvg.board_size * gvg.board_size).reshape(gvg.board_size, gvg.board_size)
                 next_move[node_move[0], node_move[1]] = gvg.filled # y = an array in the form [board_x_position, board_y_position]
@@ -40,7 +40,7 @@ def train_network(game_data, model):
                 train_boards = []
                 train_next_moves = []
 
-    # Finish of what is remaining in the batch and give a visual update
+    # Finish of what is remaining in the batch
     model.fit({"input": train_boards[:int(-len(train_boards)*vs)]},
             {"target": train_next_moves[:int(-len(train_boards)*vs)]},
             validation_set=({"input": train_boards[int(-len(train_boards)*vs):]},
@@ -50,14 +50,14 @@ def train_network(game_data, model):
     #model.save("test.tflearn")
 
 def predict_move(orig_board, model, level=0, prob_board=None):
-    board = go_board.get_encoded_board(np.copy(orig_board))
+    board = go_board.get_encoded_board(orig_board)
     if prob_board is None:
         prob_board = np.array(model.predict(board)).reshape(gvg.board_size, gvg.board_size)
 
     found_move = False
     while found_move == False:
         move = nanargmax(prob_board)
-        if board[move[0]][move[1]][gvg.player_channel] == gvg.filled or board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
+        if orig_board[move[0]][move[1]][gvg.player_channel] == gvg.filled or orig_board[move[0]][move[1]][gvg.bot_channel] == gvg.filled or \
         go_board.legal_move(orig_board, move, move_made=False, player=gvg.bot_channel) == False:
             prob_board[move[0]][move[1]] = -999999.0
         else:
