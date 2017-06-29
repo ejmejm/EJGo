@@ -48,7 +48,7 @@ for game_index in range(len(games)):
 print("Begin testing...")
 correct = 0
 for i in range(len(train_boards)):
-    enc_board = go_board.get_encoded_board(np.copy(train_boards[i])).reshape(1, gvg.board_size, gvg.board_size, 20)
+    enc_board = go_board.get_encoded_board(np.copy(train_boards[i])).reshape(1, gvg.board_size, gvg.board_size, gvg.enc_board_channels)
     pred = np.asarray(model.predict(enc_board)).reshape(gvg.board_size * gvg.board_size)
     if pred.argmax() == train_next_moves[i].argmax():
         correct += 1

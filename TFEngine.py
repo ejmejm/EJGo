@@ -57,8 +57,7 @@ class TFEngine(BaseEngine):
         if channel_from_color(color) == gvg.player_channel:
             self.board = go_board.switch_player_perspec(self.board)
 
-        prob_board = np.array(self.model.predict(go_board.get_encoded_board( \
-        self.board.reshape(-1, gvg.board_size, gvg.board_size, gvg.board_channels)))).reshape((gvg.board_size, gvg.board_size))
+        prob_board = np.array(self.model.predict(go_board.get_encoded_board(self.board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)).reshape(1, 19, 19, 20))).reshape((gvg.board_size, gvg.board_size))
         self.last_move_probs = prob_board
 
         move = go_learn.predict_move(self.board, self.model, prob_board=prob_board)
