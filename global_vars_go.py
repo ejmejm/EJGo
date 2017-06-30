@@ -30,6 +30,7 @@ kgs_black = 1 # Black stone with KGS engine
 kgs_white = 2 # White stone with KGS engine
 black_channel = bot_channel # Black stone with KGS engine
 white_channel = player_channel # White stone with KGS engine
+load_split_offset = 0 # Offset on which split to start training at
 
 # Soon to be depricated
 empty_in = 0 # Board integer for empty spaces
@@ -42,3 +43,5 @@ if len(sys.argv) >= 3:
 	nn_type = sys.argv[2]
 if len(sys.argv) >= 4:
 	cont_from_save = sys.argv[3]
+if len(sys.argv) >= 5:
+	load_split_offset = int(sys.argv[4])
