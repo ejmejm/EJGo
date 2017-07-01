@@ -36,7 +36,7 @@ for game_index in range(len(games)):
 
         node_move = node.get_move()[1]
         if node_move is not None:
-            train_boards.append(np.copy(board))
+            train_boards.append(go_board.get_encoded_board(board))
             next_move = np.zeros(gvg.board_size * gvg.board_size).reshape(gvg.board_size, gvg.board_size)
             next_move[node_move[0], node_move[1]] = gvg.filled # y = an array in the form [board_x_position, board_y_position]
             train_next_moves.append(next_move.reshape(gvg.board_size * gvg.board_size))
@@ -46,12 +46,10 @@ for game_index in range(len(games)):
                 print("ERROR! Illegal move, {}, while training".format(node_move))
 
 print("Begin testing...")
-#print(len(train_boards), train_boards[0].shape, len(train_next_moves), train_next_moves[0].shape)
-#print("Accuracy:", model.evaluate(train_boards, train_next_moves))
 correct = 0
-#train_next_moves = np.asarray(train_next_moves)
 for i in range(len(train_boards)):
-    pred = np.asarray(model.predict(train_boards[i].reshape(1, 19, 19, 2))).reshape(gvg.board_size * gvg.board_size)
+    pred = np.asarray(model.predict(train_boards[i].reshape(1, gvg.board_size, gvg.board_size, gvg.enc_board_channels))) \
+    .reshape(gvg.board_size * gvg.board_size)
     rank = 0
     found = False
     while rank < 5 and found == False:
