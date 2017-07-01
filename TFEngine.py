@@ -27,17 +27,6 @@ class TFEngine(BaseEngine):
             return False
         return BaseEngine.set_board_size(self, N)
 
-    # def pick_book_move(self, color):
-    #     if self.book:
-    #         book_move = Book.get_book_move(self.board, self.book)
-    #         if book_move:
-    #             print "playing book move", book_move
-    #             return Move(book_move[0], book_move[1])
-    #         print "no book move"
-    #     else:
-    #         print "no book"
-    #     return None
-
     def pick_model_move(self, color):
         # If asked to make a move for enemy player, switch perspective as if we are them
         if channel_from_color(color) == gvg.player_channel:

@@ -26,58 +26,57 @@ def reset_liberties():
                   np.zeros((gvg.board_size, gvg.board_size, 4))]
 
 def make_move(board, move, player, enemy, debug=False, result_only=False):
-
     global last_liberties
-    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
-    backup_board = np.copy(prev_boards[1])
-    backup_liberty = np.copy(prev_liberties[1])
-    prev_boards[1] = np.copy(prev_boards[0]) # Update previous board to the current board
-    prev_boards[0] = np.copy(board)
-    prev_liberties[1] = np.copy(prev_liberties[0]) # Update previous liberties to the current liberties
-    prev_liberties[0] = np.copy(last_liberties)
 
-    if board[move[0]][move[1]][player] == filled or board[move[0]][move[1]][player] == enemy: # Return false if illegal move
+    if board[move[0]][move[1]][player] == filled or board[move[0]][move[1]][enemy] == filled: # Return false if illegal move
+        print("ERROR! Tried to make illegal move at ({},{}) where there is already a piece".format(move[0], move[1]))
         return False
 
+    board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
+    backup_board = np.empty_like(prev_boards[1])
+    backup_board[:] = np.empty_like(prev_boards[1])
+    backup_liberty = np.empty_like(prev_liberties[1])
+    backup_liberty[:] = np.empty_like(prev_liberties[1])
+    prev_boards[1][:] = prev_boards[0] # Update previous board to the current board
+    prev_boards[0][:] = board
+    prev_liberties[1][:] = prev_liberties[0] # Update previous liberties to the current liberties
+    prev_liberties[0][:] = last_liberties
+
     board[move[0]][move[1]][player] = filled
-    marked_to_check = []
 
     liberty_updated = np.zeros((gvg.board_size, gvg.board_size)) # If a stone has already had its liberties updated
 
     group_captures = 0
     if move[0] + 1 <= 18:
         if liberty_updated[move[0]+1, move[1]] == 0 and board[move[0]+1][move[1]][enemy] == filled:
-            if check_liberties(board, np.array([move[0]+1, move[1]]))-1 == 0:
+            update_liberty_group(board, (move[0]+1, move[1]), updated_map=liberty_updated)
+            if check_liberties(board, np.array([move[0]+1, move[1]])) == 0:
                 remove_stones(board, np.array([move[0]+1, move[1]]))
                 group_captures += 1
-            else:
-                update_liberty_group(board, (move[0]+1, move[1]), updated_map=liberty_updated)
     if move[0] - 1 >= 0:
         if liberty_updated[move[0]-1, move[1]] == 0 and board[move[0]-1][move[1]][enemy] == filled:
-            if check_liberties(board, np.array([move[0]-1, move[1]]))-1 == 0:
+            update_liberty_group(board, (move[0]-1, move[1]), updated_map=liberty_updated)
+            if check_liberties(board, np.array([move[0]-1, move[1]])) == 0:
                 remove_stones(board, np.array([move[0]-1, move[1]]))
                 group_captures += 1
-            else:
-                update_liberty_group(board, (move[0]-1, move[1]), updated_map=liberty_updated)
     if move[1] + 1 <= 18:
         if liberty_updated[move[0], move[1]+1] == 0 and board[move[0]][move[1]+1][enemy] == filled:
-            if check_liberties(board, np.array([move[0], move[1]+1]))-1 == 0:
+            update_liberty_group(board, (move[0], move[1]+1), updated_map=liberty_updated)
+            if check_liberties(board, np.array([move[0], move[1]+1])) == 0:
                 remove_stones(board, np.array([move[0], move[1]+1]))
                 group_captures += 1
-            else:
-                update_liberty_group(board, (move[0], move[1]+1), updated_map=liberty_updated)
     if move[1] - 1 >= 0:
         if liberty_updated[move[0], move[1]-1] == 0 and board[move[0]][move[1]-1][enemy] == filled:
-            if check_liberties(board, np.array([move[0], move[1]-1]))-1 == 0:
+            update_liberty_group(board, (move[0], move[1]-1), updated_map=liberty_updated)
+            if check_liberties(board, np.array([move[0], move[1]-1])) == 0:
                 remove_stones(board, np.array([move[0], move[1]-1]))
                 group_captures += 1
-            else:
-                update_liberty_group(board, (move[0], move[1]-1), updated_map=liberty_updated)
 
     # Update liberties for who played the move
     update_liberty_group(board, (move[0], move[1]), updated_map=liberty_updated)
+    print(get_liberty(move))
 
-    if legal_move(board, move, player=player) == False: # If the move made is illegal
+    if legal_move(board, move, player=player, debug=True) == False: # If the move made is illegal
         board = np.copy(prev_boards[0]) # Undo it
         prev_boards[0] = np.copy(prev_boards[1])
         prev_boards[1] = backup_board
@@ -87,12 +86,12 @@ def make_move(board, move, player, enemy, debug=False, result_only=False):
         return False
 
     if result_only == True:
-        board = np.copy(prev_boards[0]) # Undo it
-        prev_boards[0] = np.copy(prev_boards[1])
-        prev_boards[1] = backup_board
-        last_liberties = np.copy(prev_liberties[0])
-        prev_liberties[0] = np.copy(prev_liberties[1])
-        prev_liberties[1] = backup_liberty
+        board[:] = prev_boards[0] # Undo it
+        prev_boards[0][:] = prev_boards[1]
+        prev_boards[1][:] = backup_board
+        last_liberties[:] = prev_liberties[0]
+        prev_liberties[0][:] = prev_liberties[1]
+        prev_liberties[1][:] = backup_liberty
         return True
 
     prev_moves[3] = prev_moves[2]
@@ -121,10 +120,6 @@ def legal_move(board, move, player=None, debug=False): # If it is legal to make 
         else:
             enemy = bot_channel
 
-    import sys
-    sys.stdout.write("C\n")
-    sys.stdout.flush()
-
     if check_liberties(board, move) == 0:
         if debug == True:
             print("ERROR! Illegal suicide move")
@@ -134,8 +129,6 @@ def legal_move(board, move, player=None, debug=False): # If it is legal to make 
             print("ERROR! Illegal Ko violation")
         return False
 
-    sys.stdout.write("D\n")
-    sys.stdout.flush()
     return True
 
 def check_captures(orig_board, move, debug=False):
@@ -164,15 +157,15 @@ def check_captures(orig_board, move, debug=False):
 
     return captures
 
-def set_liberty(move, val, liberty_list=last_liberties):
-    liberty_list[move[0], move[1], 0] = gvg.empty
-    liberty_list[move[0], move[1], 1] = gvg.empty
-    liberty_list[move[0], move[1], 2] = gvg.empty
-    liberty_list[move[0], move[1], 3] = gvg.empty
-    liberty_list[move[0], move[1]] = val
+def set_liberty(move, val):
+    true_liberties[move[0], move[1]] = val
+    last_liberties[move[0], move[1], 0] = gvg.empty
+    last_liberties[move[0], move[1], 1] = gvg.empty
+    last_liberties[move[0], move[1], 2] = gvg.empty
+    last_liberties[move[0], move[1], 3] = gvg.empty
     val = min(val, 4)
     if val > 0:
-        liberty_list[move[0], move[1], val - 1] = gvg.filled
+        last_liberties[move[0], move[1], val - 1] = gvg.filled
 
 def get_liberty(position):
     if last_liberties[position[0], position[1], 0] == gvg.filled:
@@ -258,7 +251,7 @@ def update_liberty_group(board, position, updated_map=None, debug=False):
 def check_liberties(board, position, debug=False):
     return get_liberty(position)
 
-def remove_stones(board, position, count_only=False, liberty_list=last_liberties):
+def remove_stones(board, position, count_only=False):
     board = board.reshape(gvg.board_size, gvg.board_size, gvg.board_channels)
     if board[position[0]][position[1]][gvg.bot_channel] == filled:
         player = gvg.bot_channel
@@ -297,7 +290,7 @@ def remove_stones(board, position, count_only=False, liberty_list=last_liberties
             board_check[c_move[0]][c_move[1]-1] = True
         if count_only == False:
             board[c_move[0]][c_move[1]][player] = empty
-            set_liberty(c_move, 0, liberty_list=liberty_list)
+            set_liberty(c_move, 0)
         captures += 1
     return captures
 
@@ -520,14 +513,9 @@ def liberties_to_str():
     for i in range(last_liberties.shape[0]):
         vis += "\n"
         for j in range(last_liberties.shape[1]):
-            if(last_liberties[j, gvg.board_size-1-i, 0] == gvg.filled):
-                vis += "1 "
-            elif(last_liberties[j, gvg.board_size-1-i, 1] == gvg.filled):
-                vis += "2 "
-            elif(last_liberties[j, gvg.board_size-1-i, 2] == gvg.filled):
-                vis += "3 "
-            elif(last_liberties[j, gvg.board_size-1-i, 3] == gvg.filled):
-                vis += "4 "
-            else:
+            lib = get_liberty((j, gvg.board_size-1-i))
+            if lib == 0:
                 vis += ". "
+            else:
+                vis += str(lib) + " "
     return vis
