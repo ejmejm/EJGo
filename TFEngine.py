@@ -7,20 +7,6 @@ from GTP import Move
 import go_nn as go_learn
 import board3d as go_board
 
-# def softmax(E, temp):
-#     #print "E =\n", E
-#     expE = np.exp(temp * (E - max(E))) # subtract max to avoid overflow
-#     return expE / np.sum(expE)
-#
-# def sample_from(probs):
-#     cumsum = np.cumsum(probs)
-#     r = random.random()
-#     for i in xrange(len(probs)):
-#         if r <= cumsum[i]:
-#             return i
-#     assert False, "problem with sample_from"
-
-
 class TFEngine(BaseEngine):
     def __init__(self, eng_name, model):
         super(TFEngine,self).__init__()
