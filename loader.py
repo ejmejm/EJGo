@@ -19,7 +19,11 @@ def load_model(model_name):
 def load_model_from_file(model_name):
     f = None
     for filename in glob.glob(os.path.join(gvg.checkpoint_path, "*.index")):
-        if filename[filename.index('\\')+1:filename.index('\\')+len(model_name)+1] == model_name and get_int(filename) > get_int(f):
+        try: #Substring for Windows
+            base_filename = filename[filename.index('\\')+1:filename.index('\\')+len(model_name)+1]
+        except ValueError: #Substring for Linux
+            base_filename = filename[filename.index('/')+1:filename.index('/')+len(model_name)+1]
+        if base_filename == model_name and get_int(filename) > get_int(f):
             f = filename[:-6]
     f = f.replace('\\', '/')
     if f == None:

@@ -130,7 +130,7 @@ def legal_move(board, move, player=None, debug=False): # If it is legal to make 
         if player == gvg.bot_channel:
             enemy = gvg.player_channel
         else:
-            enemy = bot_channel
+            enemy = gvg.bot_channel
 
     if check_liberties(board, move) == 0:
         if debug == True:

@@ -11,7 +11,8 @@ import math
 stddev5 = math.sqrt(1.0 / (5 * 5 * 2))
 stddev3 = math.sqrt(1.0 / (3 * 3 * 192))
 
-# 45.377% Accuracy with ~35,000 games
+# 47.375% Accuracy with ~58,000 games
+# 80.235% Top 5 Accuracy
 def get_network():
     biases = zeros(shape=[9, 19, 1, 192])
     biases2 = zeros(shape=[19, 19, 1])
