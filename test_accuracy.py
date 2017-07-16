@@ -33,6 +33,7 @@ for lb in range(num_lb):
 
     print("Done loading {} games".format(len(games)))
 
+    print("Being data processing...")
     train_boards = []
     train_next_moves = []
     for game_index in range(len(games)):
@@ -50,6 +51,7 @@ for lb in range(num_lb):
                 board = go_board.make_move(board, node_move, gvg.bot_channel, gvg.player_channel) # Update board with new move
                 if board is None:
                     print("ERROR! Illegal move, {}, while training".format(node_move))
+    print("Finished data processing...")
 
     print("Begin testing...")
     for i in range(len(train_boards)):
