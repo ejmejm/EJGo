@@ -23,9 +23,18 @@ This is a bot I am developing to play the game Go. The bot uses a deep convoluti
 
 ## Models
 
+All current network models are deep convolutional networks and can be found in the "models" folder. Each file is a seperate network model. The current best accuracy model is the ejmodel at about 50% accuracy. The network was based off the best network used [here](https://github.com/TheDuck314/go-NN). The network consists of 12 convolutional layers followed by elus and one fully connected layer followed by a softmax at the end. The first filter is 5x5, and the rest are 3x3. The model takes a 19x19x20 input array, 19x19 for the board size and 20 feature channels.
+
+### Adding a New Model
+
+To add a new model create a new python file in the models folder. The name of the file will be the name of the model itself. The name is restricted to letters only, no numbers or special characters. Every model file should contain a function called `get_network()` that contains and returns the network. I would recommend using "ejmodel.py" as a template.
+
 ## Usage
 
-To train 
+- Training: `python train_newtork.py n m c`, eg: `python train_newtork.py 50000 ejmodel false`
+..- n: number of games to use for training
+..- m: name of model to use
+..- c: true to continue off a previous save or false to start with new weights(defaults to false)
 
 ## Compatibility
 
