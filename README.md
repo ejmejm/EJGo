@@ -36,6 +36,8 @@ To add a new model create a new python file in the models folder. The name of th
   - **m**: name of model to use
   - **c**: true to continue off a previous save or false to start with new weights(defaults to false)
 
+**Commands**
+
 * **Training**: `python train_newtork.py n m c`, eg: `python train_newtork.py 50000 ejmodel false`
 
 * **Accuracy Testing**: `python test_accuracy.py n m`, eg: `python test_accuracy.py 100 ejmodel`
