@@ -65,5 +65,9 @@ To add a new model create a new python file in the models folder. The name of th
 
 EJGo was originally developed on Windows 10, so it should be fully compatible with Windows. It should be also mostly compatible with Linux, but it is a work in progress, so there are likely to be more errors. Please submit any errors as an issue so I can fix them up.
 
+## Acknowledgment
+
+TheDuck314's [go-NN repository](https://github.com/TheDuck314/go-NN) was tremendously helpful. I used their `Engine.py`, `GTP.py`, `TFEngine.py`, `KGSEngine.py`, and `TFEngine.py` to handle nearly everything server communication related.
+
 Thank you!
 
