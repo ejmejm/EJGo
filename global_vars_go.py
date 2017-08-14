@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 empty = 0 # Board integer for empty spaces
 filled = 1 # Board integer for filled spaces
@@ -17,7 +18,7 @@ process_batch_size = 64 * 500 # Number of games to process into board states bef
 train_batch_size = 64 # Number of board states to send to the GPU at once
 train_display_stride = 30 # Number of batches before giving a visual update
 file_load_split = 5000 # Number of games to load from disk to RAM at once
-nn_type = "duckvd" # Which model to use for training and testing
+nn_type = "ejmodel" # Which model to use for training and testing
 validation_split = 0.03 # What fraction of games are reserved for validation
 from_test_games = 100000 # How many games are reserved for training/where testing starts
 learning_rate = 0.001 # Learning rate for training
@@ -37,11 +38,24 @@ empty_in = 0 # Board integer for empty spaces
 bot_in = 1 # Board integer for spaces occupied by the bot
 player_in = 2 # Board integer for spaces occupied by the player
 
-if len(sys.argv) >= 2:
-    num_games = int(sys.argv[1])
-if len(sys.argv) >= 3:
-	nn_type = sys.argv[2]
-if len(sys.argv) >= 4:
-	cont_from_save = sys.argv[3]
-if len(sys.argv) >= 5:
-	load_split_offset = int(sys.argv[4])
+parser = argparse.ArgumentParser(description="EJGo flag parser")
+
+parser.add_argument('-n', "--num_games", action="store", dest="num_games", type=int, default=1000)
+parser.add_argument('-m', "--model", action="store", dest="nn_type", type=str, default="ejmodel")
+parser.add_argument('-s', "--use_save", action="store", dest="cont_from_save", type=str, default="false")
+parser.add_argument('-o', "--offset", action="store", dest="load_split_offset", type=int, default=0)
+args = parser.parse_args()
+
+num_games = args.num_games
+nn_type = args.nn_type
+cont_from_save = args.cont_from_save
+load_split_offset = args.load_split_offset
+
+# if len(sys.argv) >= 2:
+#     num_games = int(sys.argv[1])
+# if len(sys.argv) >= 3:
+# 	nn_type = sys.argv[2]
+# if len(sys.argv) >= 4:
+# 	cont_from_save = sys.argv[3]
+# if len(sys.argv) >= 5:
+# 	load_split_offset = int(sys.argv[4])
