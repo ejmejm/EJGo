@@ -31,22 +31,22 @@ To add a new model create a new python file in the models folder. The name of th
 
 ## Usage
 
-**Arguments**
+**Flags**
   - **n**: number of games to use
   - **m**: name of model to use
-  - **c**: true to continue off a previous save or false to start with new weights(defaults to false)
+  - **s**: true to continue off a previous save or false to start with new weights(defaults to false)
 
 **Commands**
 
-* **Training**: `python train_newtork.py n m c`, eg: `python train_newtork.py 50000 ejmodel false`
+* **Training**: `python train_newtork.py -n num_games -m model_name -s save`, eg: `python train_newtork.py -n 50000 -m ejmodel -s false`
 
-* **Accuracy Testing**: `python test_accuracy.py n m`, eg: `python test_accuracy.py 100 ejmodel`
+* **Accuracy Testing**: `python test_accuracy.py -n num_games -m model_name`, eg: `python test_accuracy.py -n 100 -m ejmodel`
 
 * **Host Bot on KGS Server**:
   * *Windows*: Run `StartServer.bat`
   * *Linux*: `sh StartServer.sh`
   
-* **Play Local Game Against Bot**: `python play_game.py 0 m`, eg: `python play_game.py 0 ejmodel`
+* **Play Local Game Against Bot**: `python play_game.py -m model_name`, eg: `python play_game.py -m ejmodel`
 
 ## File Purposes
 
