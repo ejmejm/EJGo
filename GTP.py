@@ -121,19 +121,25 @@ class GTP:
             self.engine.stone_played(x, y, color)
         self.tell_client("")
 
-    def generate_move(self, line, cleanup=False):
+    def generate_move(self, line, cleanup=False, returnVal=False):
         color = color_from_str(line.split()[1])
         print("GTP: asked to generate a move for {}".format(color))
         move = self.engine.generate_move(color, cleanup)
         if move.is_play():
             print("GTP: engine generated move ({},{})".format(move.x,move.y))
             self.tell_client(str_from_coords(move.x, move.y))
+            if returnVal:
+                return str_from_coords(move.x, move.y)
         elif move.is_pass():
             print("GTP: engine passed")
             self.tell_client("pass")
+            if returnVal:
+                return "pass"
         elif move.is_resign():
             print("GTP: engine resigned")
             self.tell_client("resign")
+            if returnVal:
+                return "resign"
         else:
             assert False
 
