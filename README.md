@@ -38,7 +38,7 @@ To add a new model create a new python file in the models folder. The name of th
 
 **Commands**
 
-* **Training**: `python train_newtork.py -n num_games -m model_name -s save`, eg: `python train_newtork.py -n 50000 -m ejmodel -s false`
+* **Training**: `python train_network.py -n num_games -m model_name -s save`, eg: `python train_network.py -n 50000 -m ejmodel -s false`
 
 * **Accuracy Testing**: `python test_accuracy.py -n num_games -m model_name`, eg: `python test_accuracy.py -n 100 -m ejmodel`
 
